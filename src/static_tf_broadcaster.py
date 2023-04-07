@@ -17,7 +17,7 @@ def parse_args():
         "--config",
         type=str,
         required=False,
-        default="config/static_tf_broadcaster.yaml",
+        default="../config/static_tf_broadcaster.yaml",
         help="Path to the configuration file",
     )
     return parser.parse_args()

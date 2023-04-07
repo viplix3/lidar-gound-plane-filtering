@@ -17,8 +17,12 @@ RUN mkdir /data
 # Set ROS environment variable
 ENV ROS_MASTER_URI=http://localhost:11311
 
-# Copy the source code into the container
+# Copy the source files into the container
 COPY src /workspace/src
+COPY configs /workspace/configs
+
+# Source /opt/ros/melodic/setup.bash whenever docker run or docker exec is executed
+RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 
 # Set the default command for the container
 CMD ["bash", "-c", "source /opt/ros/melodic/setup.bash && exec \"$@\"", "bash"]
