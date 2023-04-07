@@ -1,18 +1,21 @@
-FROM ros:melodic
+FROM ros:noetic-robot-focal
 
 # Set working directory
 WORKDIR /workspace
 
-# Install necessary ROS and Python packages
+# Install dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ros-melodic-rviz \
-    ros-melodic-rosbag \
-    ros-melodic-rosbridge-suite && \
+    python3 \
+    python3-dev \
+    python3-pip \
+    ros-noetic-rviz \
+    ros-noetic-rosbag \
+    ros-noetic-rosbridge-suite && \
     rm -rf /var/lib/apt/lists/*
 
 # Create a directory for rosbag files
-RUN mkdir /data
+RUN mkdir /data /src
 
 # Set ROS environment variable
 ENV ROS_MASTER_URI=http://localhost:11311
@@ -21,8 +24,9 @@ ENV ROS_MASTER_URI=http://localhost:11311
 COPY src /workspace/src
 COPY configs /workspace/configs
 
-# Source /opt/ros/melodic/setup.bash whenever docker run or docker exec is executed
-RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
+# Install python dependencies
+RUN pip3 install --no-cache ptvsd pyyaml
+RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 
-# Set the default command for the container
-CMD ["bash", "-c", "source /opt/ros/melodic/setup.bash && exec \"$@\"", "bash"]
+CMD ["bash", "-c", "source /opt/ros/noetic/setup.bash exec \"$@\"", "bash"]
+
