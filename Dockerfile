@@ -21,11 +21,11 @@ RUN mkdir /data /src
 ENV ROS_MASTER_URI=http://localhost:11311
 
 # Copy the source files into the container
-COPY src /workspace/src
-COPY configs /workspace/configs
+# COPY src /workspace/src
+# COPY configs /workspace/configs
 
 # Install python dependencies
-RUN pip3 install --no-cache ptvsd pyyaml
+RUN pip3 install --no-cache debugpy pyyaml
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 
 CMD ["bash", "-c", "source /opt/ros/noetic/setup.bash exec \"$@\"", "bash"]
