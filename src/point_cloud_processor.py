@@ -84,17 +84,7 @@ def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
 
                     debug_info_published = True
 
-                filtered_pcd = PointCloud2()
-                filtered_pcd.header.stamp = rospy.Time.now()
-                filtered_pcd.header.frame_id = msg.header.frame_id
-                filtered_pcd.height = msg.height
-                filtered_pcd.width = msg.width
-                filtered_pcd.is_dense = msg.is_dense
-                filtered_pcd.fields = msg.fields
-                filtered_pcd.point_step = msg.point_step
-                filtered_pcd.row_step = msg.row_step
-                filtered_pcd.data = pcd_numpy.tobytes()
-                dependencies["publisher"].publish(filtered_pcd)
+                dependencies["publisher"].publish(pcd_numpy, msg.header.frame_id)
 
     except KeyboardInterrupt:
         rospy.signal_shutdown("KeyboardInterrupt")
