@@ -53,24 +53,22 @@ def initialize_dependencies(args):
 
 def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
     logger.info("Starting point cloud filtering")
+
+    debug_info_published = False
     try:
         while not rospy.is_shutdown():
             msg = dependencies["subscriber"].get_message()
             if msg:
-                logger.debug("Message description: %s", msg._connection_header)
-                logger.debug("Message info: %s", msg._full_text)
-                logger.debug("Message header: %s", msg.header)
-                logger.debug("Message height: %s", msg.height)
-                logger.debug("Message width: %s", msg.width)
-                logger.debug("Message fields: %s", msg.fields)
-                logger.debug("Message is_bigendian: %s", msg.is_bigendian)
-                logger.debug("Message point_step: %s", msg.point_step)
-                logger.debug("Message row_step: %s", msg.row_step)
-                logger.debug("Message data: %s", msg.data)
-                logger.debug("Message is_dense: %s", msg.is_dense)
+                if not debug_info_published:
+                    logger.debug(f"Point cloud width: {msg.width}")
+                    logger.debug(f"Point cloud height: {msg.height}")
+                    logger.debug(f"Point cloud is_dense: {msg.is_dense}")
+                    logger.debug(f"Point step: {msg.point_step}")
+                    logger.debug(f"Row step: {msg.row_step}")
 
-                for field in msg.fields:
-                    logger.info(field.name)
+                    msg_fields = [field.name for field in msg.fields]
+                    logger.debug(f"Message fields: {msg_fields}")
+                    debug_info_published = True
 
     except KeyboardInterrupt:
         rospy.signal_shutdown("KeyboardInterrupt")
