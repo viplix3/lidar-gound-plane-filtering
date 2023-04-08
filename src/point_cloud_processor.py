@@ -2,12 +2,12 @@ import rospy
 import logging
 import argparse
 import importlib
+import ros_numpy
 
 from pathlib import Path
 from typing import Dict
 
 from utils.ros_utils import Subscriber, Publisher
-from utils.pre_processor import pointcloud2_to_numpy
 
 
 def parse_args():
@@ -61,7 +61,7 @@ def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
             msg = dependencies["subscriber"].get_message()
             if msg:
                 msg_fields = [field.name for field in msg.fields]
-                pcd = pointcloud2_to_numpy(msg, field_names=msg_fields, skip_nans=False)
+                pcd = ros_numpy.point_cloud2.pointcloud2_to_array(msg)
 
                 if not debug_info_published:
                     logger.debug(f"Point cloud width: {msg.width}")

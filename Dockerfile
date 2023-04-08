@@ -11,6 +11,7 @@ RUN apt-get update && \
     python3-pip \
     ros-noetic-rviz \
     ros-noetic-rosbag \
+    ros-noetic-ros-numpy \
     ros-noetic-rosbridge-suite && \
     rm -rf /var/lib/apt/lists/*
 
