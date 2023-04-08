@@ -1,6 +1,5 @@
 import rospy
 import logging
-import importlib
 
 from collections import deque
 from sensor_msgs.msg import PointCloud2

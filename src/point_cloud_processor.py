@@ -6,6 +6,8 @@ import ros_numpy
 
 from pathlib import Path
 from typing import Dict
+from std_msgs.msg import Header
+from sensor_msgs.msg import PointCloud2
 
 from utils.ros_utils import Subscriber, Publisher
 
@@ -49,7 +51,8 @@ def parse_args():
 
 def initialize_dependencies(args):
     subscriber = Subscriber(args.subscriber_cfg)
-    return {"subscriber": subscriber}
+    publisher = Publisher(args.publisher_cfg)
+    return {"subscriber": subscriber, "publisher": publisher}
 
 
 def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
@@ -61,7 +64,7 @@ def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
             msg = dependencies["subscriber"].get_message()
             if msg:
                 msg_fields = [field.name for field in msg.fields]
-                pcd = ros_numpy.point_cloud2.pointcloud2_to_array(msg)
+                pcd_numpy = ros_numpy.point_cloud2.pointcloud2_to_array(msg)
 
                 if not debug_info_published:
                     logger.debug(f"Point cloud width: {msg.width}")
@@ -76,10 +79,22 @@ def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
                     logger.debug(f"Message field datatypes: {msg_field_dtypes}")
                     logger.debug(f"Message field counts: {msg_fields_count}")
 
-                    logger.debug(f"Point cloud data shape: {pcd.shape}")
-                    logger.debug(f"Point cloud data dtype: {pcd.dtype}")
+                    logger.debug(f"Point cloud data shape: {pcd_numpy.shape}")
+                    logger.debug(f"Point cloud data dtype: {pcd_numpy.dtype}")
 
                     debug_info_published = True
+
+                filtered_pcd = PointCloud2()
+                filtered_pcd.header.stamp = rospy.Time.now()
+                filtered_pcd.header.frame_id = msg.header.frame_id
+                filtered_pcd.height = msg.height
+                filtered_pcd.width = msg.width
+                filtered_pcd.is_dense = msg.is_dense
+                filtered_pcd.fields = msg.fields
+                filtered_pcd.point_step = msg.point_step
+                filtered_pcd.row_step = msg.row_step
+                filtered_pcd.data = pcd_numpy.tobytes()
+                dependencies["publisher"].publish(filtered_pcd)
 
     except KeyboardInterrupt:
         rospy.signal_shutdown("KeyboardInterrupt")
