@@ -1,6 +1,7 @@
 import rospy
 import logging
 import argparse
+import importlib
 
 from pathlib import Path
 from typing import Dict
@@ -84,10 +85,8 @@ if __name__ == "__main__":
 
     dependencies = initialize_dependencies(args)
 
-    import importlib
-
+    # https://github.com/ros/ros_comm/issues/1384
     importlib.reload(logging)
-
     logging.basicConfig(
         filename=logfile_dir / "app.log",
         filemode="w",
@@ -97,6 +96,6 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)8s] [%(filename)s:%(lineno)d]: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-
     logger = logging.getLogger(__name__)
+
     filter_point_cloud(args, dependencies)
