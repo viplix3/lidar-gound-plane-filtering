@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict
 
 from utils.ros_utils import Subscriber, Publisher
+from utils.pre_processor import pointcloud2_to_numpy
 
 
 def parse_args():
@@ -59,6 +60,9 @@ def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
         while not rospy.is_shutdown():
             msg = dependencies["subscriber"].get_message()
             if msg:
+                msg_fields = [field.name for field in msg.fields]
+                pcd = pointcloud2_to_numpy(msg, field_names=msg_fields, skip_nans=False)
+
                 if not debug_info_published:
                     logger.debug(f"Point cloud width: {msg.width}")
                     logger.debug(f"Point cloud height: {msg.height}")
@@ -66,8 +70,15 @@ def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
                     logger.debug(f"Point step: {msg.point_step}")
                     logger.debug(f"Row step: {msg.row_step}")
 
-                    msg_fields = [field.name for field in msg.fields]
+                    msg_field_dtypes = [field.datatype for field in msg.fields]
+                    msg_fields_count = [field.count for field in msg.fields]
                     logger.debug(f"Message fields: {msg_fields}")
+                    logger.debug(f"Message field datatypes: {msg_field_dtypes}")
+                    logger.debug(f"Message field counts: {msg_fields_count}")
+
+                    logger.debug(f"Point cloud data shape: {pcd.shape}")
+                    logger.debug(f"Point cloud data dtype: {pcd.dtype}")
+
                     debug_info_published = True
 
     except KeyboardInterrupt:
