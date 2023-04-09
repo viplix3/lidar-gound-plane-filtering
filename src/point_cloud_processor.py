@@ -6,8 +6,6 @@ import ros_numpy
 
 from pathlib import Path
 from typing import Dict
-from std_msgs.msg import Header
-from sensor_msgs.msg import PointCloud2
 
 from utils.ros_utils import Subscriber, Publisher
 
