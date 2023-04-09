@@ -13,7 +13,6 @@ class Subscriber:
     def __init__(self, subscriber_cfg: str):
         params = load_params(subscriber_cfg)
 
-        rospy.init_node(params["node_name"])
         self.subscriber = rospy.Subscriber(
             params["topic_name"], PointCloud2, self.callback
         )

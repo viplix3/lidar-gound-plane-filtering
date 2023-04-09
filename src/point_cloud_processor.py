@@ -3,15 +3,29 @@ import logging
 import argparse
 import importlib
 import ros_numpy
+import numpy as np
 
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
+from sensor_msgs.msg import PointCloud2, PointField
 
 from utils.ros_utils import Subscriber, Publisher
+from utils.pre_processing import pre_processor
+from filtering_algos.ground_plane_filtering import ground_plane_filter
+from filtering_algos.noise_fiiltering import noise_filter
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Point Cloud Processor")
+
+    parser.add_argument(
+        "--node_name",
+        type=str,
+        required=False,
+        default="point_cloud_processor",
+        help="Name of the ROS node",
+    )
+
     parser.add_argument(
         "--log_level",
         type=str,
@@ -53,10 +67,55 @@ def initialize_dependencies(args):
     return {"subscriber": subscriber, "publisher": publisher}
 
 
-def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
-    logger.info("Starting point cloud filtering")
+def publish_debug_info(
+    msg: PointCloud2,
+    msg_fields: List[PointField],
+    pcd_numpy: np.ndarray,
+    debug_info_published: bool,
+) -> bool:
+    """Publishes the debug information of the point cloud
 
+    Args:
+        msg (PointCloud2): Point cloud message
+        msg_fields (List[PointField]): List of point fields in the point cloud message
+        pcd_numpy (np.ndarray): Point cloud data in numpy array
+        debug_info_published (bool): Flag to check if the debug info has been published
+
+    Returns:
+        bool: True if the debug info has been published
+    """
+    if not debug_info_published:
+        logger.debug(f"Point cloud width: {msg.width}")
+        logger.debug(f"Point cloud height: {msg.height}")
+        logger.debug(f"Point cloud is_dense: {msg.is_dense}")
+        logger.debug(f"Point step: {msg.point_step}")
+        logger.debug(f"Row step: {msg.row_step}")
+
+        msg_field_dtypes = [field.datatype for field in msg.fields]
+        msg_fields_count = [field.count for field in msg.fields]
+        logger.debug(f"Message fields: {msg_fields}")
+        logger.debug(f"Message field datatypes: {msg_field_dtypes}")
+        logger.debug(f"Message field counts: {msg_fields_count}")
+
+        logger.debug(f"Point cloud data shape: {pcd_numpy.shape}")
+        logger.debug(f"Point cloud data dtype: {pcd_numpy.dtype}")
+    return True
+
+
+def filter_point_cloud(
+    args: argparse.Namespace, dependencies: Dict, publish_stats: bool = False
+):
+    """Subscribes to the point cloud topic, filters the ground and noise points then publishes the filtered point cloud
+
+    Args:
+        args (argparse.Namespace): Arguments passed to the node
+        dependencies (Dict): Dictionary containing the dependencies of the node
+        publish_stats (bool, optional): Whether to publish the statistics of the point cloud. Defaults to False.
+    """
+    logger.info("Starting point cloud filtering")
     debug_info_published = False
+    num_points, intensity, _range, reflectivity = [], [], [], []
+
     try:
         while not rospy.is_shutdown():
             msg = dependencies["subscriber"].get_message()
@@ -64,33 +123,56 @@ def filter_point_cloud(args: argparse.Namespace, dependencies: Dict):
                 msg_fields = [field.name for field in msg.fields]
                 pcd_numpy = ros_numpy.point_cloud2.pointcloud2_to_array(msg)
 
-                if not debug_info_published:
-                    logger.debug(f"Point cloud width: {msg.width}")
-                    logger.debug(f"Point cloud height: {msg.height}")
-                    logger.debug(f"Point cloud is_dense: {msg.is_dense}")
-                    logger.debug(f"Point step: {msg.point_step}")
-                    logger.debug(f"Row step: {msg.row_step}")
+                debug_info_published = publish_debug_info(
+                    msg, msg_fields, pcd_numpy, debug_info_published
+                )
 
-                    msg_field_dtypes = [field.datatype for field in msg.fields]
-                    msg_fields_count = [field.count for field in msg.fields]
-                    logger.debug(f"Message fields: {msg_fields}")
-                    logger.debug(f"Message field datatypes: {msg_field_dtypes}")
-                    logger.debug(f"Message field counts: {msg_fields_count}")
+                if publish_stats:
+                    is_finite = (
+                        (pcd_numpy["x"] != 0)
+                        & (pcd_numpy["y"] != 0)
+                        & (pcd_numpy["z"] != 0)
+                    )
+                    total_finite = is_finite.sum()
+                    num_points.append(total_finite)
+                    reflectivity.append(pcd_numpy["reflectivity"])
+                    intensity.append(pcd_numpy["intensity"])
+                    _range.append(pcd_numpy["range"])
 
-                    logger.debug(f"Point cloud data shape: {pcd_numpy.shape}")
-                    logger.debug(f"Point cloud data dtype: {pcd_numpy.dtype}")
+                pre_processed_pcd = pre_processor(pcd_numpy)
+                noise_points, filtered_pcd = noise_filter(pre_processed_pcd)
+                ground_points, filtered_pcd = ground_plane_filter(filtered_pcd)
 
-                    debug_info_published = True
-
-                dependencies["publisher"].publish(pcd_numpy, msg.header.frame_id)
+                dependencies["publisher"].publish(filtered_pcd, msg.header.frame_id)
 
     except KeyboardInterrupt:
         rospy.signal_shutdown("KeyboardInterrupt")
         logger.info("Shutting down")
+    finally:
+        if publish_stats:
+            logger.info(
+                "Statistics of the data (only points with finite x-y-z coordinates are considered)"
+            )
+            logger.info("Average number of points: {}".format(np.mean(num_points)))
+            logger.info("Minimum number of points: {}".format(np.min(num_points)))
+            logger.info("Maximum number of points: {}".format(np.max(num_points)))
+
+            logger.info("Average reflectivity: {}".format(np.mean(reflectivity)))
+            logger.info("Minimum reflectivity: {}".format(np.min(reflectivity)))
+            logger.info("Maximum reflectivity: {}".format(np.max(reflectivity)))
+
+            logger.info("Average intensity: {}".format(np.mean(intensity)))
+            logger.info("Minimum intensity: {}".format(np.min(intensity)))
+            logger.info("Maximum intensity: {}".format(np.max(intensity)))
+
+            logger.info("Average range: {}".format(np.mean(_range)))
+            logger.info("Minimum range: {}".format(np.min(_range)))
+            logger.info("Maximum range: {}".format(np.max(_range)))
 
 
 if __name__ == "__main__":
     args = parse_args()
+    rospy.init_node(args.node_name)
 
     logfile_dir = Path(__file__).parent.parent / "logs"
     logfile_dir.mkdir(parents=True, exist_ok=True)

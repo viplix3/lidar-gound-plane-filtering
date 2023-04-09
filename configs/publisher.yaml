@@ -1,3 +1,2 @@
-node_name: filtered_pcd_publisher
 topic_name: tbuggy/os2/points_filtered
 queue_size: 30

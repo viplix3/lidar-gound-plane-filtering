@@ -1,3 +1,2 @@
-node_name: pcd_subscriber
 topic_name: tbuggy/os2/points
 queue_size: 30
