@@ -1,6 +1,5 @@
 import rospy
 import logging
-import numpy as np
 
 from sensor_msgs.msg import PointCloud2
 
@@ -18,5 +17,5 @@ class Publisher:
             params["topic_name"], PointCloud2, queue_size=params["queue_size"]
         )
 
-    def publish(self, pcd_numpy: np.ndarray, frame_id: str):
-        self.publisher.publish(pcd_numpy)
+    def publish(self, pcd: PointCloud2):
+        self.publisher.publish(pcd)
