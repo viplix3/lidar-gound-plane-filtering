@@ -36,6 +36,7 @@ def statistical_outlier_filter(pcd: PointCloud2):
             Each point is represented by 9 values (x, y, z, intensity, time, reflectivity, ring, ambient, range)
     """
 
+    pcd_all_fields = pc2.read_points(pcd, field_names=None, skip_nans=True)
     pcd_xyz = pc2.read_points(pcd, field_names=("x", "y", "z"), skip_nans=True)
     pcd_o3d = o3d.geometry.PointCloud()
     pcd_o3d.points = o3d.utility.Vector3dVector(pcd_xyz)
@@ -49,10 +50,11 @@ def statistical_outlier_filter(pcd: PointCloud2):
         nb_neighbors=nb_neighbors, std_ratio=std_ratio
     )
 
-    # Extract the filtered points from pcd_o3d
-    filtered_xyz = np.asarray(pcd_o3d.points)
+    # Preserve the other fields for the filtered points
+    ind = set(ind)
+    filtered_points_all_fields = [pt for i, pt in enumerate(pcd_all_fields) if i in ind]
 
-    # Create a new PointCloud2 message with the filtered points
-    pcd_filtered = pc2.create_cloud_xyz32(pcd.header, filtered_xyz)
+    # Create a new PointCloud2 message with the filtered points and preserved fields
+    pcd_filtered = pc2.create_cloud(pcd.header, pcd.fields, filtered_points_all_fields)
 
     return pcd_filtered
