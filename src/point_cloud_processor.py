@@ -118,13 +118,13 @@ def filter_point_cloud(
 
     try:
         while not rospy.is_shutdown():
-            msg = dependencies["subscriber"].get_message()
-            if msg:
-                msg_fields = [field.name for field in msg.fields]
-                pcd_numpy = ros_numpy.point_cloud2.pointcloud2_to_array(msg)
+            pcd = dependencies["subscriber"].get_message()
+            if pcd:
+                msg_fields = [field.name for field in pcd.fields]
+                pcd_numpy = ros_numpy.point_cloud2.pointcloud2_to_array(pcd)
 
                 debug_info_published = publish_debug_info(
-                    msg, msg_fields, pcd_numpy, debug_info_published
+                    pcd, msg_fields, pcd_numpy, debug_info_published
                 )
 
                 if publish_stats:
@@ -139,11 +139,11 @@ def filter_point_cloud(
                     intensity.append(pcd_numpy["intensity"])
                     _range.append(pcd_numpy["range"])
 
-                pre_processed_pcd = pre_processor(pcd_numpy)
+                pre_processed_pcd = pre_processor(pcd)
                 noise_points, filtered_pcd = noise_filter(pre_processed_pcd)
                 ground_points, filtered_pcd = ground_plane_filter(filtered_pcd)
 
-                dependencies["publisher"].publish(filtered_pcd, msg.header.frame_id)
+                dependencies["publisher"].publish(filtered_pcd, pcd.header.frame_id)
 
     except KeyboardInterrupt:
         rospy.signal_shutdown("KeyboardInterrupt")

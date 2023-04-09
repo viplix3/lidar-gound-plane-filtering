@@ -1,7 +1,6 @@
 import rospy
 import logging
 import numpy as np
-import ros_numpy
 
 from sensor_msgs.msg import PointCloud2
 
@@ -20,7 +19,4 @@ class Publisher:
         )
 
     def publish(self, pcd_numpy: np.ndarray, frame_id: str):
-        point_cloud2_msg = ros_numpy.point_cloud2.array_to_pointcloud2(
-            pcd_numpy, rospy.Time.now(), frame_id
-        )
-        self.publisher.publish(point_cloud2_msg)
+        self.publisher.publish(pcd_numpy)
