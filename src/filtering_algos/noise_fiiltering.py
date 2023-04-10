@@ -1,18 +1,23 @@
 import numpy as np
-from typing import Tuple
+import sensor_msgs.point_cloud2 as pc2
+
+from typing import Tuple, Dict
+from sensor_msgs.msg import PointCloud2
 
 
-def noise_filter(pcd_numpy: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def noise_filter(pcd: PointCloud2, params: Dict) -> Tuple[PointCloud2, PointCloud2]:
     """Removes noise from the point cloud data
 
     Employed noise filtering algorithms:
         - None
 
     Args:
-        pcd_numpy (np.ndarray): Point cloud data in numpy array
+        pcd (PointCloud2): Point cloud data in a ROS PointCloud2 format
+            The shape is (H, W) where H is the height, W is the width
+            Each point is represented by 9 values (x, y, z, intensity, time, reflectivity, ring, ambient, range)
+        params (Dict): Parameters for the noise filter
 
     Returns:
-        np.ndarray: Point cloud data containing only the noise
-        np.ndarray: Filtered point cloud data with the noise removed
+        Tuple[PointCloud2, PointCloud2]: Noise PointCloud2, Filtered PointCloud2
     """
-    return np.empty_like(pcd_numpy), pcd_numpy
+    return PointCloud2(), pcd

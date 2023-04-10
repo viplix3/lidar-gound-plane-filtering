@@ -1,0 +1,37 @@
+pre_processing_params:
+  statistical_outlier_removal:
+    nb_neighbors: 78  # small: too sensitive to noise, large: too conservative
+    std_ratio: 3.6  # small: would remove too much, large: would fail to capture outliers
+  radius_outlier_removal:
+    radius: 0.5
+    min_neighbors: 10
+
+noise_filtering_params:
+  none: none
+
+ground_plane_filtering_params:
+  RANSAC:
+    max_iterations: 1000
+    distance_threshold: 0.1
+  KNN:
+    k: 50
+    distance_threshold: 0.1
+  voxel_grid:
+    leaf_size: 0.1
+  passthrough:
+    x_min: -1.0
+    x_max: 1.0
+    y_min: -1.0
+    y_max: 1.0
+    z_min: -1.0
+    z_max: 1.0
+  euclidean_cluster_extraction:
+    tolerance: 0.1
+    min_cluster_size: 100
+    max_cluster_size: 1000000
+  region_growing:
+    min_cluster_size: 100
+    max_cluster_size: 1000000
+    number_of_neighbours: 30
+    smoothness_threshold: 3.0
+    curvature_threshold: 1.0

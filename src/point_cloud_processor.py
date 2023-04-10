@@ -9,10 +9,11 @@ from pathlib import Path
 from typing import Dict, List
 from sensor_msgs.msg import PointCloud2, PointField
 
-from utils.ros_utils import Subscriber, Publisher
 from utils.pre_processing import pre_processor
-from filtering_algos.ground_plane_filtering import ground_plane_filter
+from utils.ros_utils import Subscriber, Publisher
+from utils.initializers_and_loader import load_params
 from filtering_algos.noise_fiiltering import noise_filter
+from filtering_algos.ground_plane_filtering import ground_plane_filter
 
 
 def parse_args():
@@ -35,14 +36,6 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--static_tf_cfg",
-        type=str,
-        required=False,
-        default="configs/static_tf_broadcaster.yaml",
-        help="Path to transform configuration file",
-    )
-
-    parser.add_argument(
         "--publisher_cfg",
         type=str,
         required=False,
@@ -58,13 +51,34 @@ def parse_args():
         help="Path to the ros subscriber configuration file",
     )
 
+    parser.add_argument(
+        "--filtering_params_cfg",
+        type=str,
+        required=False,
+        default="configs/filtering_params.yaml",
+        help="Path to the filtering parameters configuration file",
+    )
+
     return parser.parse_args()
 
 
 def initialize_dependencies(args):
+    """Initializes the dependencies of the node and returns them
+
+    Args:
+        args (argparse.Namespace): Arguments parsed from the command line
+
+    Returns:
+        Dict: Dictionary containing the dependencies of the node
+    """
     subscriber = Subscriber(args.subscriber_cfg)
     publisher = Publisher(args.publisher_cfg)
-    return {"subscriber": subscriber, "publisher": publisher}
+    filtering_params = load_params(args.filtering_params_cfg)
+    return {
+        "subscriber": subscriber,
+        "publisher": publisher,
+        "filtering_params": filtering_params,
+    }
 
 
 def publish_debug_info(
@@ -102,19 +116,17 @@ def publish_debug_info(
     return True
 
 
-def filter_point_cloud(
-    args: argparse.Namespace, dependencies: Dict, publish_stats: bool = False
-):
+def filter_point_cloud(dependencies: Dict, publish_stats: bool = False):
     """Subscribes to the point cloud topic, filters the ground and noise points then publishes the filtered point cloud
 
     Args:
-        args (argparse.Namespace): Arguments passed to the node
         dependencies (Dict): Dictionary containing the dependencies of the node
         publish_stats (bool, optional): Whether to publish the statistics of the point cloud. Defaults to False.
     """
     logger.info("Starting point cloud filtering")
     debug_info_published = False
     num_points, intensity, _range, reflectivity = [], [], [], []
+    filtering_params = dependencies["filtering_params"]
 
     try:
         while not rospy.is_shutdown():
@@ -139,9 +151,15 @@ def filter_point_cloud(
                     intensity.append(pcd_numpy["intensity"])
                     _range.append(pcd_numpy["range"])
 
-                pre_processed_pcd = pre_processor(pcd)
-                noise_points, filtered_pcd = noise_filter(pre_processed_pcd)
-                ground_points, filtered_pcd = ground_plane_filter(filtered_pcd)
+                pre_processed_pcd = pre_processor(
+                    pcd, filtering_params["pre_processing_params"]
+                )
+                noise_points, filtered_pcd = noise_filter(
+                    pre_processed_pcd, filtering_params["noise_filtering_params"]
+                )
+                ground_points, filtered_pcd = ground_plane_filter(
+                    filtered_pcd, filtering_params["ground_plane_filtering_params"]
+                )
 
                 dependencies["publisher"].publish(filtered_pcd)
 
@@ -192,4 +210,4 @@ if __name__ == "__main__":
     )
     logger = logging.getLogger(__name__)
 
-    filter_point_cloud(args, dependencies)
+    filter_point_cloud(dependencies)
