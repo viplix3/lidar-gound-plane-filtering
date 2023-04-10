@@ -13,7 +13,9 @@ def pre_processor(pcd: PointCloud2) -> PointCloud2:
     """Pre-processes the point cloud data.
 
     Employed pre-processing algorithms:
-        - None
+        Statistical outlier filter
+            (Tentative: Bilateral filter)
+            (Tentative: Radius outlier filter)
 
     Args:
         pcd (PointCloud2): Point cloud data in a ROS PointCloud2 format
