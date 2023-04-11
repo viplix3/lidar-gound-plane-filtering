@@ -1,10 +1,14 @@
 pre_processing_params:
   statistical_outlier_removal:
     nb_neighbors: 78  # small: too sensitive to noise, large: too conservative
-    std_ratio: 3.6  # small: would remove too much, large: would fail to capture outliers
+    std_ratio: 3.4  # small: would remove too much, large: would fail to capture outliers
   radius_outlier_removal:
     radius: 2  # small: too sensitive to noise, large: too conservative
-    min_neighbors: 2  # small: would fail to capture outliers, large: would remove too much
+    min_neighbors: 4  # small: would fail to capture outliers, large: would remove too much
+
+noise_filtering_params:
+  min_range: 3  # smallest LiDAR PCD range (in m)
+  max_range: 240  # largest LiDAR PCD range (in m)
 
 ground_plane_filtering_params:
   RANSAC:
