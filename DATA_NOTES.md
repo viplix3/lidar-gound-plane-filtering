@@ -1,6 +1,9 @@
 # LiDAR Point-Cloud Statistics
 
+On the basis of data and statistics collected from the bag file, we can make the following observations:
 The LiDAR point-cloud has a width and height of (512, 128) and a depth of 9 (x, y, z, intensity, time, reflectivity, ring, ambient, range).
+
+From a bit of research, the closest matching LiDAR sensor that has most likely been used is Ouster OS2. The data sheet for this sensor can be found [here](https://ouster.com/wp-content/uploads/2020/03/OS2-128-Datasheet.pdf).
 
 ## Data Statistics
 
