@@ -11,8 +11,9 @@ noise_filtering_params:
 
 ground_plane_filtering_params:
   RANSAC:
-    max_iterations: 1000
+    min_points_to_fit: 3
     distance_threshold: 0.1
+    num_iterations: 1000
   KNN:
     k: 50
     distance_threshold: 0.1

@@ -6,7 +6,6 @@ import sensor_msgs.point_cloud2 as pc2
 from typing import Dict
 from sensor_msgs.msg import PointCloud2
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -56,6 +55,8 @@ def statistical_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
         nb_neighbors=params["nb_neighbors"], std_ratio=params["std_ratio"]
     )
 
+    logger.debug(f"Filtered out {len(pcd_all_fields) - len(inlier_indices)} points.")
+
     # Preserve the other fields for the filtered points
     inlier_indices = set(inlier_indices)
     filtered_points_all_fields = [
@@ -85,6 +86,8 @@ def radius_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
     pcd_o3d, inlier_indices = pcd_o3d.remove_radius_outlier(
         nb_points=params["min_neighbors"], radius=params["radius"]
     )
+
+    logger.debug(f"Filtered out {len(pcd_all_fields) - len(inlier_indices)} points.")
 
     # Preserve the other fields for the filtered points
     inlier_indices = set(inlier_indices)

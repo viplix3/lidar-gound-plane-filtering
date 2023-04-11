@@ -1,8 +1,12 @@
+import logging
 import numpy as np
+import open3d as o3d
 import sensor_msgs.point_cloud2 as pc2
 
 from typing import Tuple, Dict
 from sensor_msgs.msg import PointCloud2
+
+logger = logging.getLogger(__name__)
 
 
 def ground_plane_filter(
@@ -52,4 +56,35 @@ def ground_plane_filter(
     Returns:
         Tuple[PointCloud2, PointCloud2]: Ground plane point cloud data, non-ground plane point cloud data
     """
-    return PointCloud2(), pcd
+    pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
+    pcd_xyz = pc2.read_points(pcd, field_names=("x", "y", "z"), skip_nans=True)
+    pcd_o3d = o3d.geometry.PointCloud()
+    pcd_o3d.points = o3d.utility.Vector3dVector(pcd_xyz)
+
+    plane_model, inlier_indices = pcd_o3d.segment_plane(
+        distance_threshold=params["RANSAC"]["distance_threshold"],
+        ransac_n=params["RANSAC"]["min_points_to_fit"],
+        num_iterations=params["RANSAC"]["num_iterations"],
+    )
+
+    [a, b, c, d] = plane_model
+    logger.debug(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
+
+    # inlier_cloud = pcd_o3d.select_by_index(inlier_indices)
+    # inlier_cloud.paint_uniform_color([1.0, 0, 0])
+    # outlier_cloud = pcd_o3d.select_by_index(inlier_indices, invert=True)
+    # o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud])
+
+    inlier_indices = set(inlier_indices)
+    ground_plane_pts = [
+        pt for pt_idx, pt in enumerate(pcd_all_fields) if pt_idx in inlier_indices
+    ]
+    non_ground_plane_pts = [
+        pt for pt_idx, pt in enumerate(pcd_all_fields) if pt_idx not in inlier_indices
+    ]
+
+    ground_plane_pcd = pc2.create_cloud(pcd.header, pcd.fields, ground_plane_pts)
+    non_ground_plane_pcd = pc2.create_cloud(
+        pcd.header, pcd.fields, non_ground_plane_pts
+    )
+    return ground_plane_pcd, non_ground_plane_pcd
