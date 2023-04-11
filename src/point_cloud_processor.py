@@ -154,8 +154,9 @@ def filter_point_cloud(dependencies: Dict, publish_stats: bool = False):
                 pre_processed_pcd = pre_processor(
                     pcd, filtering_params["pre_processing_params"]
                 )
-                noise_points, filtered_pcd = noise_filter(
-                    pre_processed_pcd, filtering_params["noise_filtering_params"]
+                pcd_noise, filtered_pcd = noise_filter(
+                    pre_processed_pcd,
+                    filtering_params.get("noise_filtering_params", {}),
                 )
                 ground_plane_pcd, filtered_pcd = ground_plane_filter(
                     filtered_pcd, filtering_params["ground_plane_filtering_params"]
