@@ -9,7 +9,7 @@ def noise_filter(pcd: PointCloud2, params: Dict) -> Tuple[PointCloud2, PointClou
     """Removes noise from the point cloud data
 
     Employed noise filtering algorithms:
-        - None
+        (Tentative: Remove all points before the ring of the first scan)
 
     Args:
         pcd (PointCloud2): Point cloud data in a ROS PointCloud2 format
