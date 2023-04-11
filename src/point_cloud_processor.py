@@ -1,3 +1,4 @@
+import time
 import rospy
 import logging
 import argparse
@@ -151,16 +152,26 @@ def filter_point_cloud(dependencies: Dict, publish_stats: bool = False):
                     intensity.append(pcd_numpy["intensity"])
                     _range.append(pcd_numpy["range"])
 
+                tick = time.time()
                 pre_processed_pcd = pre_processor(
                     pcd, filtering_params["pre_processing_params"]
                 )
+                tock = time.time()
+                logger.debug("Pre-processing time: {}".format(tock - tick))
+
+                tick = time.time()
                 pcd_noise, filtered_pcd = noise_filter(
-                    pre_processed_pcd,
-                    filtering_params.get("noise_filtering_params", {}),
+                    pre_processed_pcd, filtering_params["noise_filtering_params"]
                 )
+                tock = time.time()
+                logger.debug("Noise filtering time: {}".format(tock - tick))
+
+                tick = time.time()
                 ground_plane_pcd, filtered_pcd = ground_plane_filter(
                     filtered_pcd, filtering_params["ground_plane_filtering_params"]
                 )
+                tock = time.time()
+                logger.debug("Ground plane filtering time: {}".format(tock - tick))
 
                 dependencies["publisher"].publish(
                     filtered_pcd=filtered_pcd, ground_plane_pcd=ground_plane_pcd
