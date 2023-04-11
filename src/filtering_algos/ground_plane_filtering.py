@@ -6,6 +6,8 @@ import sensor_msgs.point_cloud2 as pc2
 from typing import Tuple, Dict
 from sensor_msgs.msg import PointCloud2
 
+from utils.pre_processing import convert_pc2_to_o3d_xyz
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,9 +59,7 @@ def ground_plane_filter(
         Tuple[PointCloud2, PointCloud2]: Ground plane point cloud data, non-ground plane point cloud data
     """
     pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
-    pcd_xyz = pc2.read_points(pcd, field_names=("x", "y", "z"), skip_nans=True)
-    pcd_o3d = o3d.geometry.PointCloud()
-    pcd_o3d.points = o3d.utility.Vector3dVector(pcd_xyz)
+    pcd_o3d = convert_pc2_to_o3d_xyz(pcd)
 
     plane_model, inlier_indices = pcd_o3d.segment_plane(
         distance_threshold=params["RANSAC"]["distance_threshold"],
@@ -70,10 +70,11 @@ def ground_plane_filter(
     [a, b, c, d] = plane_model
     logger.debug(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
 
-    # inlier_cloud = pcd_o3d.select_by_index(inlier_indices)
-    # inlier_cloud.paint_uniform_color([1.0, 0, 0])
-    # outlier_cloud = pcd_o3d.select_by_index(inlier_indices, invert=True)
-    # o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud])
+    # O3D Visualization
+    inlier_cloud = pcd_o3d.select_by_index(inlier_indices)
+    inlier_cloud.paint_uniform_color([1.0, 0, 0])
+    outlier_cloud = pcd_o3d.select_by_index(inlier_indices, invert=True)
+    o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud])
 
     inlier_indices = set(inlier_indices)
     ground_plane_pts = [

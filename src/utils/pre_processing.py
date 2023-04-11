@@ -46,9 +46,7 @@ def statistical_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
     """
 
     pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
-    pcd_xyz = pc2.read_points(pcd, field_names=("x", "y", "z"), skip_nans=True)
-    pcd_o3d = o3d.geometry.PointCloud()
-    pcd_o3d.points = o3d.utility.Vector3dVector(pcd_xyz)
+    pcd_o3d = convert_pc2_to_o3d_xyz(pcd)
 
     # Apply statistical outlier filter
     pcd_o3d, inlier_indices = pcd_o3d.remove_statistical_outlier(
@@ -78,9 +76,7 @@ def radius_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
         PointCloud2: Filtered point cloud data
     """
     pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
-    pcd_xyz = pc2.read_points(pcd, field_names=("x", "y", "z"), skip_nans=True)
-    pcd_o3d = o3d.geometry.PointCloud()
-    pcd_o3d.points = o3d.utility.Vector3dVector(pcd_xyz)
+    pcd_o3d = convert_pc2_to_o3d_xyz(pcd)
 
     # Apply radius outlier filter
     pcd_o3d, inlier_indices = pcd_o3d.remove_radius_outlier(
@@ -96,3 +92,20 @@ def radius_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
     ]
     pcd_filtered = pc2.create_cloud(pcd.header, pcd.fields, filtered_points_all_fields)
     return pcd_filtered
+
+
+def convert_pc2_to_o3d_xyz(pcd: PointCloud2) -> o3d.geometry.PointCloud:
+    """Converts a ROS PointCloud2 message to an Open3D point cloud object.
+
+    Args:
+        pcd (PointCloud2): Point cloud data in a ROS PointCloud2 format
+            The shape is (H, W) where H is the height, W is the width
+            Each point is represented by 9 values (x, y, z, intensity, time, reflectivity, ring, ambient, range)
+
+    Returns:
+        o3d.geometry.PointCloud: Open3D point cloud object holding the point cloud data (x, y, z)
+    """
+    pcd_xyz = pc2.read_points(pcd, field_names=("x", "y", "z"), skip_nans=True)
+    pcd_o3d = o3d.geometry.PointCloud()
+    pcd_o3d.points = o3d.utility.Vector3dVector(pcd_xyz)
+    return pcd_o3d
