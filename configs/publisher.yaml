@@ -1,2 +1,3 @@
-topic_name: tbuggy/os2/points_filtered
+filtered_pcd_topic_name: tbuggy/os2/points_filtered
+ground_plane_topic_name: tbuggy/os2/ground_plane
 queue_size: 30

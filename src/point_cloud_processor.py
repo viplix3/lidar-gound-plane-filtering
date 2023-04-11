@@ -157,11 +157,13 @@ def filter_point_cloud(dependencies: Dict, publish_stats: bool = False):
                 noise_points, filtered_pcd = noise_filter(
                     pre_processed_pcd, filtering_params["noise_filtering_params"]
                 )
-                ground_points, filtered_pcd = ground_plane_filter(
+                ground_plane_pcd, filtered_pcd = ground_plane_filter(
                     filtered_pcd, filtering_params["ground_plane_filtering_params"]
                 )
 
-                dependencies["publisher"].publish(filtered_pcd)
+                dependencies["publisher"].publish(
+                    filtered_pcd=filtered_pcd, ground_plane_pcd=ground_plane_pcd
+                )
 
     except KeyboardInterrupt:
         rospy.signal_shutdown("KeyboardInterrupt")
