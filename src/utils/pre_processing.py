@@ -24,63 +24,36 @@ def pre_processor(pcd: PointCloud2, filtering_params: Dict) -> PointCloud2:
     Returns:
         PointCloud2: Pre-processed point cloud data
     """
-    filtered_pcd = statistical_outlier_removal(
-        pcd, filtering_params["statistical_outlier_removal"]
-    )
-    filtered_pcd = radius_outlier_removal(
-        filtered_pcd, filtering_params["radius_outlier_removal"]
-    )
+    filtered_pcd = apply_outlier_filters(pcd, filtering_params)
     return filtered_pcd
 
 
-def statistical_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
-    """Filters out outliers in the point cloud data using statistical outlier filter.
+def apply_outlier_filters(pcd: PointCloud2, filtering_params: Dict) -> PointCloud2:
+    """Applies outlier filters to the point cloud data
 
     Args:
         pcd (PointCloud2): Point cloud data in a ROS PointCloud2 format
             The shape is (H, W) where H is the height, W is the width
             Each point is represented by 9 values (x, y, z, intensity, time, reflectivity, ring, ambient, range)
-        params (Dict): Parameters for the statistical outlier filter
+        filtering_params (Dict): Parameters for the outlier filters
+
     Returns:
         PointCloud2: Filtered point cloud data
     """
-
     pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
     pcd_o3d = convert_pc2_to_o3d_xyz(pcd)
 
-    # Apply statistical outlier filter
+    # Apply statistical outlier filter, takes 0.5s for 1 frame on average
+    statistical_params = filtering_params["statistical_outlier_removal"]
     pcd_o3d, inlier_indices = pcd_o3d.remove_statistical_outlier(
-        nb_neighbors=params["nb_neighbors"], std_ratio=params["std_ratio"]
+        nb_neighbors=statistical_params["nb_neighbors"],
+        std_ratio=statistical_params["std_ratio"],
     )
 
-    logger.debug(f"Filtered out {len(pcd_all_fields) - len(inlier_indices)} points.")
-
-    # Preserve the other fields for the filtered points
-    inlier_indices = set(inlier_indices)
-    filtered_points_all_fields = [
-        pt for pt_idx, pt in enumerate(pcd_all_fields) if pt_idx in inlier_indices
-    ]
-    pcd_filtered = pc2.create_cloud(pcd.header, pcd.fields, filtered_points_all_fields)
-    return pcd_filtered
-
-
-def radius_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
-    """Filters out outliers in the point cloud data using radius outlier filter.
-
-    Args:
-        pcd (PointCloud2): Point cloud data in a ROS PointCloud2 format
-            The shape is (H, W) where H is the height, W is the width
-            Each point is represented by 9 values (x, y, z, intensity, time, reflectivity, ring, ambient, range)
-        params (Dict): Parameters for the radius outlier filter
-    Returns:
-        PointCloud2: Filtered point cloud data
-    """
-    pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
-    pcd_o3d = convert_pc2_to_o3d_xyz(pcd)
-
-    # Apply radius outlier filter
+    # Apply radius outlier filter, takes 0.8s for 1 frame on average
+    radius_params = filtering_params["radius_outlier_removal"]
     pcd_o3d, inlier_indices = pcd_o3d.remove_radius_outlier(
-        nb_points=params["min_neighbors"], radius=params["radius"]
+        nb_points=radius_params["min_neighbors"], radius=radius_params["radius"]
     )
 
     logger.debug(f"Filtered out {len(pcd_all_fields) - len(inlier_indices)} points.")
@@ -90,6 +63,8 @@ def radius_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
     filtered_points_all_fields = [
         pt for pt_idx, pt in enumerate(pcd_all_fields) if pt_idx in inlier_indices
     ]
+    tock = time.time()
+
     pcd_filtered = pc2.create_cloud(pcd.header, pcd.fields, filtered_points_all_fields)
     return pcd_filtered
 
