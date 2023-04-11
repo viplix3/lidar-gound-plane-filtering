@@ -26,7 +26,7 @@ The LiDAR point-cloud has a width and height of (512, 128) and a depth of 9 (x, 
 
 ### Range Statistics
 
-- Looking from the numbers, this looks like it is in mm (also supported by the os2 sensor datasheet: <https://data.ouster.io/downloads/datasheets/datasheet-revd-v2p0-os2.pdf>).
+- Looking from the numbers
 - Average range: 3456.3175131634966
 - Minimum range: 0
 - Maximum range: 483343
