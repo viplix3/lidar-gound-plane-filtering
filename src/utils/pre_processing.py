@@ -53,8 +53,8 @@ def statistical_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
     pcd_o3d.points = o3d.utility.Vector3dVector(pcd_xyz)
 
     # Define statistical outlier filter parameters
-    nb_neighbors = params["nb_neighbors"] if "nb_neighbors" in params else 20
-    std_ratio = params["std_ratio"] if "std_ratio" in params else 2.0
+    nb_neighbors = params["nb_neighbors"]
+    std_ratio = params["std_ratio"]
 
     # Apply statistical outlier filter
     pcd_o3d, inlier_indices = pcd_o3d.remove_statistical_outlier(
@@ -81,4 +81,24 @@ def radius_outlier_removal(pcd: PointCloud2, params: Dict) -> PointCloud2:
     Returns:
         PointCloud2: Filtered point cloud data
     """
-    return pcd
+    pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
+    pcd_xyz = pc2.read_points(pcd, field_names=("x", "y", "z"), skip_nans=True)
+    pcd_o3d = o3d.geometry.PointCloud()
+    pcd_o3d.points = o3d.utility.Vector3dVector(pcd_xyz)
+
+    # Define filter parameters
+    min_neighbors = params["min_neighbors"]
+    radius = params["radius"]
+
+    # Apply radius outlier filter
+    pcd_o3d, inlier_indices = pcd_o3d.remove_radius_outlier(
+        nb_points=min_neighbors, radius=radius
+    )
+
+    # Preserve the other fields for the filtered points
+    inlier_indices = set(inlier_indices)
+    filtered_points_all_fields = [
+        pt for pt_idx, pt in enumerate(pcd_all_fields) if pt_idx in inlier_indices
+    ]
+    pcd_filtered = pc2.create_cloud(pcd.header, pcd.fields, filtered_points_all_fields)
+    return pcd_filtered

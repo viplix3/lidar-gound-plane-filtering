@@ -3,8 +3,8 @@ pre_processing_params:
     nb_neighbors: 78  # small: too sensitive to noise, large: too conservative
     std_ratio: 3.6  # small: would remove too much, large: would fail to capture outliers
   radius_outlier_removal:
-    radius: 0.5
-    min_neighbors: 10
+    radius: 2  # small: too sensitive to noise, large: too conservative
+    min_neighbors: 2  # small: would fail to capture outliers, large: would remove too much
 
 noise_filtering_params:
   none: none
