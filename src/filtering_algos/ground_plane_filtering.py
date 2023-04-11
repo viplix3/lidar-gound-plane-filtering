@@ -18,11 +18,6 @@ def ground_plane_filter(
 
     Employed ground plane filtering algorithms:
         RANSAC to get initial ground plane estimate (Look into adaptive RANSAC)
-            Initial seed for RANSAC
-                Do a quantile based analysis of the point cloud data, use the points
-                    towards the bottom of the point cloud as the initial seed (z-axis)
-                Make sure the points in initial seed don't have unusually negative z-values,
-                    i.e. don't want to start with z-min points as they could be noise
         Estimate additional features for initial ground plane points
             Surface Normals
                 Points on ground plane should have normals close to (0, 0, -1)
@@ -61,28 +56,50 @@ def ground_plane_filter(
     pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
     pcd_o3d = convert_pc2_to_o3d_xyz(pcd)
 
-    plane_model, inlier_indices = pcd_o3d.segment_plane(
+    # Input Point Cloud Visualization
+    # o3d.visualization.draw_geometries([pcd_o3d])
+
+    # RANSAC ground plane estimation with initial seed
+    plane_model, inlier_indices_ransac = pcd_o3d.segment_plane(
         distance_threshold=params["RANSAC"]["distance_threshold"],
         ransac_n=params["RANSAC"]["min_points_to_fit"],
         num_iterations=params["RANSAC"]["num_iterations"],
     )
 
-    [a, b, c, d] = plane_model
-    logger.debug(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
+    # O3D Visualization for filtered point cloud
+    # Extract ground plane and non-ground plane point clouds
+    # [a, b, c, d] = plane_model
+    # logger.debug(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
+    # ground_plane_pcd = pcd_o3d.select_by_index(inlier_indices_ransac)
+    # non_ground_plane_pcd = pcd_o3d.select_by_index(inlier_indices_ransac, invert=True)
+    # ground_plane_pcd.paint_uniform_color([1.0, 0, 0])
+    # o3d.visualization.draw_geometries([ground_plane_pcd, non_ground_plane_pcd])
 
-    # O3D Visualization
-    inlier_cloud = pcd_o3d.select_by_index(inlier_indices)
-    inlier_cloud.paint_uniform_color([1.0, 0, 0])
-    outlier_cloud = pcd_o3d.select_by_index(inlier_indices, invert=True)
-    o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud])
-
-    inlier_indices = set(inlier_indices)
+    # Segregate ground plane points on the basis of RANSAC
+    inlier_indices = set(inlier_indices_ransac)
     ground_plane_pts = [
         pt for pt_idx, pt in enumerate(pcd_all_fields) if pt_idx in inlier_indices
     ]
     non_ground_plane_pts = [
         pt for pt_idx, pt in enumerate(pcd_all_fields) if pt_idx not in inlier_indices
     ]
+
+    # DBSCAN clustering for ground plane refinement
+    # cluster_labels = o3d.geometry.PointCloud.cluster_dbscan(
+    #     ground_plane_pcd, eps=0.2, min_points=3, print_progress=True
+    # )
+    # filtered_indices = np.where(cluster_labels != -1)[0]
+    # ground_plane_pcd = ground_plane_pcd.select_by_index(filtered_indices)
+    # ground_plane_pcd.paint_uniform_color([0, 1.0, 0])
+    # o3d.visualization.draw_geometries([ground_plane_pcd, non_ground_plane_pcd])
+
+    # # Convert back to ROS PointCloud2
+    # ground_plane_pcd_ros = pc2.create_cloud_xyz32(
+    #     pcd.header, np.asarray(ground_plane_pcd.points)
+    # )
+    # non_ground_plane_pcd_ros = pc2.create_cloud_xyz32(
+    #     pcd.header, np.asarray(non_ground_plane_pcd.points)
+    # )
 
     ground_plane_pcd = pc2.create_cloud(pcd.header, pcd.fields, ground_plane_pts)
     non_ground_plane_pcd = pc2.create_cloud(
