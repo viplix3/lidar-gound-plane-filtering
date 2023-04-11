@@ -45,25 +45,22 @@ def apply_outlier_filters(pcd: PointCloud2, filtering_params: Dict) -> PointClou
 
     # Apply statistical outlier filter, takes 0.5s for 1 frame on average
     statistical_params = filtering_params["statistical_outlier_removal"]
-    pcd_o3d, inlier_indices = pcd_o3d.remove_statistical_outlier(
+    _, inlier_indices_sor = pcd_o3d.remove_statistical_outlier(
         nb_neighbors=statistical_params["nb_neighbors"],
         std_ratio=statistical_params["std_ratio"],
     )
 
     # Apply radius outlier filter, takes 0.8s for 1 frame on average
     radius_params = filtering_params["radius_outlier_removal"]
-    pcd_o3d, inlier_indices = pcd_o3d.remove_radius_outlier(
+    _, inlier_indices_ror = pcd_o3d.remove_radius_outlier(
         nb_points=radius_params["min_neighbors"], radius=radius_params["radius"]
     )
 
-    logger.debug(f"Filtered out {len(pcd_all_fields) - len(inlier_indices)} points.")
-
     # Preserve the other fields for the filtered points
-    inlier_indices = set(inlier_indices)
+    inlier_indices = set(inlier_indices_sor + inlier_indices_ror)
     filtered_points_all_fields = [
         pt for pt_idx, pt in enumerate(pcd_all_fields) if pt_idx in inlier_indices
     ]
-    tock = time.time()
 
     pcd_filtered = pc2.create_cloud(pcd.header, pcd.fields, filtered_points_all_fields)
     return pcd_filtered
