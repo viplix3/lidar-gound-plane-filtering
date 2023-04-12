@@ -41,6 +41,14 @@ def noise_filter(pcd: PointCloud2, params: Dict) -> Tuple[PointCloud2, PointClou
 
     pcd_filtered = pc2.create_cloud(pcd.header, pcd.fields, filtered_points_all_fields)
     pcd_noise = pc2.create_cloud(pcd.header, pcd.fields, noise_points_all_fields)
+
+    if logger.isEnabledFor(logging.DEBUG):
+        # O3D Visualizations
+        pcd_o3d_filtered = convert_pc2_to_o3d_xyz(pcd_filtered)
+        pcd_noise = convert_pc2_to_o3d_xyz(pcd_noise)
+        pcd_noise.paint_uniform_color([1, 0, 0])
+        o3d.visualization.draw_geometries([pcd_o3d_filtered, pcd_noise])
+
     return pcd_noise, pcd_filtered
 
 

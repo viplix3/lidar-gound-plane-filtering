@@ -63,6 +63,13 @@ def apply_outlier_filters(pcd: PointCloud2, filtering_params: Dict) -> PointClou
     ]
 
     pcd_filtered = pc2.create_cloud(pcd.header, pcd.fields, filtered_points_all_fields)
+
+    if logger.isEnabledFor(logging.DEBUG):
+        # O3D Visualization
+        pcd_o3d.paint_uniform_color([1.0, 0, 0])
+        pcd_o3d_filtered = convert_pc2_to_o3d_xyz(pcd_filtered)
+        o3d.visualization.draw_geometries([pcd_o3d, pcd_o3d_filtered])
+
     return pcd_filtered
 
 
