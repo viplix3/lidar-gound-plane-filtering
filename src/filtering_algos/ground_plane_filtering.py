@@ -54,17 +54,18 @@ class GroundPlaneFilter:
         Employed ground plane filtering algorithms:
             RANSAC to get initial ground plane estimate
 
-            DBSCAN clustering based ground plane refinement (Look into HDBSCAN)
-                Try a feature pyramid approach here, that can help in handling ground plane that is not flat
-                Divide the initial ground plane into multiple bins based on concentric circles
-                Apply DBSCAN clustering to each bin
-                Merge the bins based on z-gradients
-                This would allow us to handle ground plane that is not flat
+            TODO:
+                DBSCAN clustering based ground plane refinement (Look into HDBSCAN)
+                    Try a feature pyramid approach here, that can help in handling ground plane that is not flat
+                    Divide the initial ground plane into multiple bins based on concentric circles
+                    Apply DBSCAN clustering to each bin
+                    Merge the bins based on z-gradients
+                    This would allow us to handle ground plane that is not flat
 
-            PostProcessing to improve the ground plane estimate
-                Remove isolated clusters of small points
-                Merge clusters of points that are close to each other in z-direction
-                Fill holes in the ground plane (Morphological operations)
+                PostProcessing to improve the ground plane estimate
+                    Remove isolated clusters of small points
+                    Merge clusters of points that are close to each other in z-direction
+                    Fill holes in the ground plane (Morphological operations)
 
         Args:
             pcd (PointCloud2): Point cloud data in a ROS PointCloud2 format
