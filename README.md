@@ -87,7 +87,7 @@ Using statistical outlier filtering alone didn't remove all the noise points. Th
     radius: 2  # small: too sensitive to noise, large: too conservative
     min_neighbors: 4  # small: would fail to capture outliers, large: would remove too much
 
-After applying these filters, the point cloud looks like this (the removed noise points are shown in red):
+After applying these filters, the point cloud looks like this ***(the removed noise points are shown in red)***:
 
 [![Point Cloud][3]][3]
 
@@ -102,7 +102,7 @@ The thresholds used for the distance filtering were:
     min_range: 3  # smallest lidar pcd range (in m)
     max_range: 240  # largest lidar pcd range (in m)
 
-The point cloud after applying the distance threshold looks like this (the removed noise points are shown in red):
+The point cloud after applying the distance threshold looks like this ***(the removed noise points are shown in red)***:
 
 [![Point Cloud][4]][4]
 
@@ -128,7 +128,7 @@ The parameters used for the RANSAC algorithm:
   num_iterations: 1000
   ransac_frequency: 3
 
-The point cloud after applying the RANSAC algorithm looks like this (the removed ground plane points are shown in red):
+The point cloud after applying the RANSAC algorithm looks like this ***(the removed ground plane points are shown in red)***:
 
 [![Point Cloud][5]][5]
 
@@ -176,10 +176,10 @@ Parameters used for the horizontal angle seed:
 To find a balance between the computational cost and the accuracy of the ground plane removal, the results of the above experiments were compared.
 Visual inspection of the results showed random seed and surface normals perform similarly. However, the horizontal angle seed performed poorly.
 
-The results of the experiments are shown in the following images (the removed ground plane points are shown in red):
+The results of the experiments are shown in the following images ***(the removed ground plane points are shown in red)***:
 
-The (t) means the time step the RANSAC algorithm was applied on.
-(t-1) means the time step the RANSAC algorithm was applied on the previous time step and the same model was used for the current time step.
+- ***The (t) means the time step the RANSAC algorithm was applied on***
+- ***(t-1) means the time step the RANSAC algorithm was applied on the previous time step and the same model was used for the current time step***
 
 [![Point Cloud][6]][6]
 
@@ -193,11 +193,11 @@ The (t) means the time step the RANSAC algorithm was applied on.
 
 [8]: assets/stitched/used_estimated_plane_(t-2).png
 
-[!Point Cloud][9][9]
+[![Point Cloud][9]][9]
 
 [9]: assets/stitched/used_estimated_plane_(t-3).png
 
-[!Point Cloud][10][10]
+[![Point Cloud][10]][10]
 
 [10]: assets/stitched/used_estimated_plane_(t-4).png
 
