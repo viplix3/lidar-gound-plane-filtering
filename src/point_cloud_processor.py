@@ -14,7 +14,7 @@ from utils.pre_processing import pre_processor
 from utils.ros_utils import Subscriber, Publisher
 from utils.initializers_and_loader import load_params
 from filtering_algos.noise_fiiltering import noise_filter
-from filtering_algos.ground_plane_filtering import ground_plane_filter
+from filtering_algos.ground_plane_filtering import GroundPlaneFilter
 
 
 def parse_args():
@@ -75,9 +75,14 @@ def initialize_dependencies(args):
     subscriber = Subscriber(args.subscriber_cfg)
     publisher = Publisher(args.publisher_cfg)
     filtering_params = load_params(args.filtering_params_cfg)
+    ground_plane_filter = GroundPlaneFilter(
+        **filtering_params["ground_plane_filtering_params"]
+    )
+
     return {
         "subscriber": subscriber,
         "publisher": publisher,
+        "ground_plane_filter": ground_plane_filter,
         "filtering_params": filtering_params,
     }
 
@@ -128,6 +133,7 @@ def filter_point_cloud(dependencies: Dict, publish_stats: bool = False):
     debug_info_published = False
     num_points, intensity, _range, reflectivity = [], [], [], []
     filtering_params = dependencies["filtering_params"]
+    ground_filter = dependencies["ground_plane_filter"]
 
     try:
         while not rospy.is_shutdown():
@@ -167,9 +173,7 @@ def filter_point_cloud(dependencies: Dict, publish_stats: bool = False):
                 logger.debug("Noise filtering time: {}".format(tock - tick))
 
                 tick = time.time()
-                ground_plane_pcd, filtered_pcd = ground_plane_filter(
-                    filtered_pcd, filtering_params["ground_plane_filtering_params"]
-                )
+                ground_plane_pcd, filtered_pcd = ground_filter.filter(filtered_pcd)
                 tock = time.time()
                 logger.debug("Ground plane filtering time: {}".format(tock - tick))
 

@@ -11,39 +11,17 @@ noise_filtering_params:
   max_range: 240  # largest LiDAR PCD range (in m)
 
 ground_plane_filtering_params:
-  RANSAC:
-    min_points_to_fit: 3
-    distance_threshold: 0.1
-    num_iterations: 1000
-    seed_sampling:
-      method: random
-      num_samples: 50
-      normal_estimation:
-        radius: 0.1
-        max_nn: 50
-        selection_threshold: 0.1
-      horizontal:
-        min_angle: -0.523599
-        max_angle: 0.523599
-  KNN:
-    k: 50
-    distance_threshold: 0.1
-  voxel_grid:
-    leaf_size: 0.1
-  passthrough:
-    x_min: -1.0
-    x_max: 1.0
-    y_min: -1.0
-    y_max: 1.0
-    z_min: -1.0
-    z_max: 1.0
-  euclidean_cluster_extraction:
-    tolerance: 0.1
-    min_cluster_size: 100
-    max_cluster_size: 1000000
-  region_growing:
-    min_cluster_size: 100
-    max_cluster_size: 1000000
-    number_of_neighbours: 30
-    smoothness_threshold: 3.0
-    curvature_threshold: 1.0
+  min_points_to_fit: 3
+  distance_threshold: 0.1
+  num_iterations: 1000
+  ransac_frequency: 5
+  seed_sampling_method: "horizontal_angle" # random, surface_normals, horizontal_angle
+  surface_normal_sampling_params:
+    radius: 0.1
+    max_nn: 50
+    selection_threshold: 0.1
+  horizontal_sampling_params:
+    min_angle: -0.523599
+    max_angle: 0.523599
+  random_sampling_params:
+    num_samples: 100
