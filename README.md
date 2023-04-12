@@ -111,6 +111,7 @@ The point cloud after applying the distance threshold looks like this (the remov
 ### Ground Plane Removal
 
 Finally, the ground plane was removed using the [RANSAC](http://pointclouds.org/documentation/tutorials/planar_segmentation.php#ransac) algorithm.
+
 RANSAC works by randomly selecting a subset of points and fitting a model to the subset. The model is then evaluated to determine how well it fits the data. The model with the best fit is selected as the best model. This process is repeated a number of times to find the best model.
 
 We can apply RANSAC algorithm on every time step of the point cloud to find the best model for the ground plane. However, this would be computationally expensive.
@@ -140,3 +141,65 @@ Therefore, a few experiments were conducted to determine the best initial seed t
 ### Random Seed
 
 In this experiment, a random subset of *100 points* was used as the initial seed for the RANSAC algorithm.
+
+### Surface Normals Seed
+
+In this experiment, the surface normals of the point cloud were calculated using KDTree search.
+
+Surface normals are the vectors that are perpendicular to the surface of an object. They can be used to determine the orientation of the object.
+As we figured out in the initial analysis, the ground plane is relatively flat. Therefore, the surface normals of the ground plane points should be close to the z-axis.
+Hence, the points having the surface normals within a certain threshold from the z-axis can be used as the initial seed for the RANSAC algorithm.
+
+Parameters used for the surface normals seed:
+  surface_normal_sampling_params:
+    radius: 0.1
+    max_nn: 50
+    selection_threshold: 0.1
+
+### Horizontal Angle Seed
+
+In this experiment, horizontal angle of the points was calculated using the following formula:
+
+```python
+horizontal_angle = np.arctan2(point_y, point_x)
+```
+
+The points having the horizontal angle within a certain threshold from the z-axis can be used as the initial seed for the RANSAC algorithm.
+
+Parameters used for the horizontal angle seed:
+  horizontal_sampling_params:
+    min_angle: -0.523599
+    max_angle: 0.523599
+
+### Experiment Results
+
+To find a balance between the computational cost and the accuracy of the ground plane removal, the results of the above experiments were compared.
+Visual inspection of the results showed random seed and surface normals perform similarly. However, the horizontal angle seed performed poorly.
+
+The results of the experiments are shown in the following images (the removed ground plane points are shown in red):
+
+The (t) means the time step the RANSAC algorithm was applied on.
+(t-1) means the time step the RANSAC algorithm was applied on the previous time step and the same model was used for the current time step.
+
+[![Point Cloud][6]][6]
+
+[6]: assets/stitched/plane_fitted_(t).png
+
+[![Point Cloud][7]][7]
+
+[7]: assets/stitched/used_estimated_plane_(t-1).png
+
+[![Point Cloud][8]][8]
+
+[8]: assets/stitched/used_estimated_plane_(t-2).png
+
+[!Point Cloud][9][9]
+
+[9]: assets/stitched/used_estimated_plane_(t-3).png
+
+[!Point Cloud][10][10]
+
+[10]: assets/stitched/used_estimated_plane_(t-4).png
+
+As the results show both the random seed and surface normals seed perform similarly, the ***random seed was used for the final implementation*** as it is computationally less expensive.
+Moreover, the ***a predicted ground plane model was used for the next 3 time steps to reduce the computational cost*** (empirically determined).
