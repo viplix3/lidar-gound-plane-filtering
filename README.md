@@ -201,5 +201,5 @@ The results of the experiments are shown in the following images ***(the removed
 
 [10]: assets/stitched/used_estimated_plane_(t-4).png
 
-As the results show both the random seed and surface normals seed perform similarly, the ***random seed was used for the final implementation*** as it is computationally less expensive.
-Moreover, the ***a predicted ground plane model was used for the next 3 time steps to reduce the computational cost*** (empirically determined).
+- As the results show both the random seed and surface normals seed perform similarly, the ***random seed was used for the final implementation*** as it is computationally less expensive.
+- Moreover, the ***a predicted ground plane model was used for the next 3 time steps to reduce the computational cost*** (empirically determined).
