@@ -59,7 +59,7 @@ Furthermore, the point cloud contains a significant amount of noise points (as c
 
 [1]: assets/raw_pcd_rviz.png
 
-As it is evident from the image above, a lot of points exist in isolation. These points can be consiidered outliers and can be removed using outlier filtering algorithms like [Statistical Outlier Removal](http://pointclouds.org/documentation/tutorials/statistical_outlier.php) or [Radius Outlier Removal](http://pointclouds.org/documentation/tutorials/radius_outlier.php).
+As it is evident from the image above, a lot of points exist in isolation. These points can be considered outliers and can be removed using outlier filtering algorithms like [Statistical Outlier Removal](http://pointclouds.org/documentation/tutorials/statistical_outlier.php) or [Radius Outlier Removal](http://pointclouds.org/documentation/tutorials/radius_outlier.php).
 
 In addition to the noise mentioned above, there are some points that are very close to the origin of the point cloud.
 
@@ -67,7 +67,7 @@ In addition to the noise mentioned above, there are some points that are very cl
 
 [2]: assets/raw_pcd_rviz_mount_noise.png
 
-These points likely exist because of how the LiDAR sensor has been mounted on the host and do not provide any useful information. These points can be removed using a distance threshold.
+These points likely exist because of how the LiDAR sensor has been mounted on the host and do not provide any useful information. Therefore, these points can be removed using a distance threshold without any major loss of information.
 
 ***The filtering algorithm was developed on the basis of the above analysis.***
 
@@ -146,7 +146,7 @@ The point cloud after applying the RANSAC algorithm looks like this ***(the remo
 
 [5]: assets/0002_pcd_ground_filtering_ransac_on_full_pcd.png
 
-In the results shown in the image above, the full point cloud was used for the RANSAC algorithm. However, this approach is computationally expensive.
+The results shown in the image above fed the entire point cloud to RANSAC for estimating the ground plane. However, this approach is computationally expensive.
 
 Therefore, a few experiments were conducted to determine the best initial seed that can be fed to the RANSAC algorithm to reduce the computational cost.
 
@@ -156,7 +156,7 @@ In this experiment, a random subset of *100 points* was used as the initial seed
 
 ### Surface Normals Seed
 
-In this experiment, the surface normals of the point cloud were calculated using KDTree search.
+In this experiment, the surface normals of the point cloud were used to generate the initial seed for the RANSAC algorithm.
 
 Surface normals are the vectors that are perpendicular to the surface of an object. They can be used to determine the orientation of the object.
 As we figured out in the initial analysis, the ground plane is relatively flat. Therefore, the surface normals of the ground plane points should be close to the z-axis.
@@ -197,7 +197,7 @@ Visual inspection of the results showed random seed and surface normals perform 
 The results of the experiments are shown in the following images ***(the removed ground plane points are shown in red)***:
 
 - ***The (t) means the time step the RANSAC algorithm was applied on***
-- ***(t-1) means the time step the RANSAC algorithm was applied on the previous time step and the same model was used for the current time step***
+- ***(t-1) means the RANSAC algorithm was applied on the previous time step to get the ground plane and the same plane model has been used for the current time step***
 
 [![Point Cloud][6]][6]
 
@@ -220,4 +220,4 @@ The results of the experiments are shown in the following images ***(the removed
 [10]: assets/stitched/used_estimated_plane_(t-4).png
 
 - As the results show both the random seed and surface normals seed perform similarly, the ***random seed was used for the final implementation*** as it is computationally less expensive.
-- Moreover, the ***a predicted ground plane model was used for the next 3 time steps to reduce the computational cost*** (empirically determined).
+- Moreover, ***a predicted ground plane model was used for the next 3 time steps to reduce the computational cost*** (empirically determined).
