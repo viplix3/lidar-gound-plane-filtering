@@ -70,3 +70,73 @@ In addition to the noise mentioned above, there are some points that are very cl
 These points likely exist because of how the LiDAR sensor has been mounted on the host and do not provide any useful information. These points can be removed using a distance threshold.
 
 ***The filtering algorithm was developed on the basis of the above analysis.***
+
+### Outlier Filtering
+
+To remove the noise, outlier filtering was performed using the [Statistical Outlier Removal](http://pointclouds.org/documentation/tutorials/statistical_outlier.php) algorithm.
+
+Statical outlier removal works by calculating the mean distance of each point to its nearest neighbors. If the distance of a point to its nearest neighbors is greater than a user-defined threshold, the point is considered an outlier and is removed.
+
+Following parameters were used for the outlier filtering:
+  statistical_outlier_removal:
+    nb_neighbors: 78  # small: too sensitive to noise, large: too conservative
+    std_ratio: 3.4  # small: would remove too much, large: would fail to capture outliers
+
+Using statistical outlier filtering alone didn't remove all the noise points. Therefore, radius outlier filtering was also used to remove the remaining noise points with following parameters:
+  radius_outlier_removal:
+    radius: 2  # small: too sensitive to noise, large: too conservative
+    min_neighbors: 4  # small: would fail to capture outliers, large: would remove too much
+
+After applying these filters, the point cloud looks like this (the removed noise points are shown in red):
+
+[![Point Cloud][3]][3]
+
+[3]: assets/0000_pcd_filtering.png
+
+### Noise Removal
+
+As discussed, apart from the outliers, there are some points that are very close to the origin of the point cloud. These points were removed by using a distance threshold from the origin, i.e. points lying within a certain distance from the origin were removed.
+
+The thresholds used for the distance filtering were:
+  noise_filtering_params:
+    min_range: 3  # smallest lidar pcd range (in m)
+    max_range: 240  # largest lidar pcd range (in m)
+
+The point cloud after applying the distance threshold looks like this (the removed noise points are shown in red):
+
+[![Point Cloud][4]][4]
+
+[4]: assets/0001_pcd_noise_removed.png
+
+### Ground Plane Removal
+
+Finally, the ground plane was removed using the [RANSAC](http://pointclouds.org/documentation/tutorials/planar_segmentation.php#ransac) algorithm.
+RANSAC works by randomly selecting a subset of points and fitting a model to the subset. The model is then evaluated to determine how well it fits the data. The model with the best fit is selected as the best model. This process is repeated a number of times to find the best model.
+
+We can apply RANSAC algorithm on every time step of the point cloud to find the best model for the ground plane. However, this would be computationally expensive.
+
+To reduce the computational cost, we can use the best model from the previous time step to filter out the points that are close to the ground plane. We can keep using the same model for a number of time steps and then re-estimate the model using RANSAC.
+This approach has been implemented in the filtering algorithm.
+
+The RANSAC algorithm would yield the best results if the ground plan is relatively flat.
+In the provided point cloud, RANSAC was able to remove the ground plane points with a high degree of accuracy, hence, further filtering was not required.
+
+The parameters used for the RANSAC algorithm:
+  min_points_to_fit: 3
+  distance_threshold: 0.1
+  num_iterations: 1000
+  ransac_frequency: 3
+
+The point cloud after applying the RANSAC algorithm looks like this (the removed ground plane points are shown in red):
+
+[![Point Cloud][5]][5]
+
+[5]: assets/0002_pcd_ground_filtering_ransac_on_full_pcd.png
+
+In the results shown in the image above, the full point cloud was used for the RANSAC algorithm. However, this approach is computationally expensive.
+
+Therefore, a few experiments were conducted to determine the best initial seed that can be fed to the RANSAC algorithm to reduce the computational cost.
+
+### Random Seed
+
+In this experiment, a random subset of *100 points* was used as the initial seed for the RANSAC algorithm.
