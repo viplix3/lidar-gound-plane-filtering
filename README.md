@@ -78,14 +78,20 @@ To remove the noise, outlier filtering was performed using the [Statistical Outl
 Statical outlier removal works by calculating the mean distance of each point to its nearest neighbors. If the distance of a point to its nearest neighbors is greater than a user-defined threshold, the point is considered an outlier and is removed.
 
 Following parameters were used for the outlier filtering:
-  statistical_outlier_removal:
-    nb_neighbors: 78  # small: too sensitive to noise, large: too conservative
-    std_ratio: 3.4  # small: would remove too much, large: would fail to capture outliers
+
+```yaml
+statistical_outlier_removal:
+  nb_neighbors: 78  # small: too sensitive to noise, large: too conservative
+  std_ratio: 3.4  # small: would remove too much, large: would fail to capture outliers
+```
 
 Using statistical outlier filtering alone didn't remove all the noise points. Therefore, radius outlier filtering was also used to remove the remaining noise points with following parameters:
+
+```yaml
   radius_outlier_removal:
     radius: 2  # small: too sensitive to noise, large: too conservative
     min_neighbors: 4  # small: would fail to capture outliers, large: would remove too much
+```
 
 After applying these filters, the point cloud looks like this ***(the removed noise points are shown in red)***:
 
@@ -98,9 +104,12 @@ After applying these filters, the point cloud looks like this ***(the removed no
 As discussed, apart from the outliers, there are some points that are very close to the origin of the point cloud. These points were removed by using a distance threshold from the origin, i.e. points lying within a certain distance from the origin were removed.
 
 The thresholds used for the distance filtering were:
+
+```yaml
   noise_filtering_params:
     min_range: 3  # smallest lidar pcd range (in m)
     max_range: 240  # largest lidar pcd range (in m)
+```
 
 The point cloud after applying the distance threshold looks like this ***(the removed noise points are shown in red)***:
 
@@ -123,10 +132,13 @@ The RANSAC algorithm would yield the best results if the ground plan is relative
 In the provided point cloud, RANSAC was able to remove the ground plane points with a high degree of accuracy, hence, further filtering was not required.
 
 The parameters used for the RANSAC algorithm:
+
+```yaml
   min_points_to_fit: 3
   distance_threshold: 0.1
   num_iterations: 1000
   ransac_frequency: 3
+```
 
 The point cloud after applying the RANSAC algorithm looks like this ***(the removed ground plane points are shown in red)***:
 
@@ -151,10 +163,13 @@ As we figured out in the initial analysis, the ground plane is relatively flat. 
 Hence, the points having the surface normals within a certain threshold from the z-axis can be used as the initial seed for the RANSAC algorithm.
 
 Parameters used for the surface normals seed:
-  surface_normal_sampling_params:
-    radius: 0.1
-    max_nn: 50
-    selection_threshold: 0.1
+
+```yaml
+surface_normal_sampling_params:
+  radius: 0.1
+  max_nn: 50
+  selection_threshold: 0.1
+```
 
 ### Horizontal Angle Seed
 
@@ -167,9 +182,12 @@ horizontal_angle = np.arctan2(point_y, point_x)
 The points having the horizontal angle within a certain threshold from the z-axis can be used as the initial seed for the RANSAC algorithm.
 
 Parameters used for the horizontal angle seed:
-  horizontal_sampling_params:
-    min_angle: -0.523599
-    max_angle: 0.523599
+
+```yaml
+horizontal_sampling_params:
+  min_angle: -0.523599
+  max_angle: 0.523599
+```
 
 ### Experiment Results
 
