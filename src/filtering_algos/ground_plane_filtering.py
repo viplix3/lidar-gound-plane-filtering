@@ -5,10 +5,18 @@ import sensor_msgs.point_cloud2 as pc2
 
 from typing import Tuple, Dict
 from sensor_msgs.msg import PointCloud2
+from enum import Enum
 
 from utils.pre_processing import convert_pc2_to_o3d_xyz
 
 logger = logging.getLogger(__name__)
+
+
+class SamplingMethod(Enum):
+    """Enum for the sampling method to be used for RANSAC seed points"""
+
+    SURFACE_NORMALS = "surface_normals"
+    HORIZONTAL_GRADIENT = "horizontal_gradient"
 
 
 def ground_plane_filter(
@@ -18,20 +26,6 @@ def ground_plane_filter(
 
     Employed ground plane filtering algorithms:
         RANSAC to get initial ground plane estimate (Look into adaptive RANSAC)
-        Estimate additional features for initial ground plane points
-            Surface Normals
-                Points on ground plane should have normals close to (0, 0, -1)
-                    assuming a relatively flat ground plane
-            Analyze intensity and reflectivity (Quantile based)
-                Points with low intensity could be noise, eliminate them
-                Points with high reflectivity could be noise, eliminate them
-                Intensity and Reflectivity Gradient (look into it, might help in removing noise)
-            Range Gradient and Range Curvature
-                Know this is a feature used in a lot of other algorithms, need to study it
-            KNN to get distribution of points around the ground plane
-                Points on ground plane should have a high density of points around them
-                Neighbors of points on ground plane should be close to each other in z-direction
-                    again, assuming a relatively flat ground plane
         Use the features to remove outliers
         DBSCAN clustering based ground plane refinement (Look into HDBSCAN)
             Try a feature pyramid approach here, that can help in handling ground plane that is not flat
@@ -56,24 +50,14 @@ def ground_plane_filter(
     pcd_all_fields = list(pc2.read_points(pcd, field_names=None, skip_nans=False))
     pcd_o3d = convert_pc2_to_o3d_xyz(pcd)
 
-    # Input Point Cloud Visualization
-    # o3d.visualization.draw_geometries([pcd_o3d])
-
     # RANSAC ground plane estimation with initial seed
-    plane_model, inlier_indices_ransac = pcd_o3d.segment_plane(
+    seed_indices = sample_ransac_seed(pcd_o3d, params["RANSAC"]["seed_sampling"])
+    ransac_input = pcd_o3d.select_by_index(seed_indices)
+    plane_model, inlier_indices_ransac = ransac_input.segment_plane(
         distance_threshold=params["RANSAC"]["distance_threshold"],
         ransac_n=params["RANSAC"]["min_points_to_fit"],
         num_iterations=params["RANSAC"]["num_iterations"],
     )
-
-    # O3D Visualization for filtered point cloud
-    # Extract ground plane and non-ground plane point clouds
-    # [a, b, c, d] = plane_model
-    # logger.debug(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
-    # ground_plane_pcd = pcd_o3d.select_by_index(inlier_indices_ransac)
-    # non_ground_plane_pcd = pcd_o3d.select_by_index(inlier_indices_ransac, invert=True)
-    # ground_plane_pcd.paint_uniform_color([1.0, 0, 0])
-    # o3d.visualization.draw_geometries([ground_plane_pcd, non_ground_plane_pcd])
 
     # Segregate ground plane points on the basis of RANSAC
     inlier_indices = set(inlier_indices_ransac)
@@ -105,4 +89,53 @@ def ground_plane_filter(
     non_ground_plane_pcd = pc2.create_cloud(
         pcd.header, pcd.fields, non_ground_plane_pts
     )
+
+    ground_plane_pcd_o3d = convert_pc2_to_o3d_xyz(ground_plane_pcd)
+    non_ground_plane_pcd_o3d = convert_pc2_to_o3d_xyz(non_ground_plane_pcd)
+    ground_plane_pcd_o3d.paint_uniform_color([1.0, 0, 0])
+    o3d.visualization.draw_geometries([ground_plane_pcd_o3d, non_ground_plane_pcd_o3d])
+
     return ground_plane_pcd, non_ground_plane_pcd
+
+
+def sample_ransac_seed(
+    pcd_o3d: o3d.geometry.PointCloud, sampling_params: Dict
+) -> o3d.geometry.PointCloud:
+    """Samples points from the point cloud to be used as the initial seed for RANSAC ground plane estimation
+
+    Args:
+        pcd_o3d (o3d.geometry.PointCloud): Point cloud data in an Open3D PointCloud format
+        params (Dict): Parameters for the noise filter
+
+    Returns:
+        o3d.geometry.PointCloud: Point cloud data in an Open3D PointCloud format
+    """
+    sampled_point_indices = []
+    sampling_method = SamplingMethod(sampling_params["method"])
+
+    if sampling_method == SamplingMethod.SURFACE_NORMALS:
+        sampling_params = sampling_params["surface_normals"]
+        pcd_o3d.estimate_normals(
+            search_param=o3d.geometry.KDTreeSearchParamHybrid(
+                radius=sampling_params["radius"],
+                max_nn=sampling_params["max_nn"],
+            )
+        )
+        normals = np.asarray(pcd_o3d.normals)
+
+        # Points on ground plane should have normals close to (0, 0, -1)
+        for idx, normal in enumerate(normals):
+            if normal[2] > sampling_params["selection_threshold"]:
+                sampled_point_indices.append(idx)
+
+    elif sampling_method == SamplingMethod.HORIZONTAL_GRADIENT:
+        sampling_params = sampling_params["horizontal"]
+        pass
+    else:
+        logger.warning("Invalid sampling method for RANSAC seed")
+        logger.warning("Using random sampling method instead")
+        sampled_point_indices = np.random.choice(
+            len(pcd_o3d.points), sampling_params["num_samples"], replace=False
+        )
+
+    return sampled_point_indices
