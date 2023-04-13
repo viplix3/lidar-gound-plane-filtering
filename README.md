@@ -72,9 +72,10 @@ The details of the analysis can be found in the [analysis report][def].
 
 [def]: DATA_NOTES.md
 
-An initial visual analysis was done using [RViz](http://wiki.ros.org/rviz). It was observed that the ground plane is primarily flat, which suggests that a plane fitting algorithm like [RANSAC](http://pointclouds.org/documentation/tutorials/planar_segmentation.php#ransac) can be used to remove the ground plane points.
+Visual analysis was done using [RViz](http://wiki.ros.org/rviz).
 
-Furthermore, the point cloud contains a significant amount of noise points (as can be seen in the image below) that are situated far outside the standard point cloud data.
+- It was observed that the ground plane is primarily flat, which suggested that a plane fitting algorithm like [RANSAC](http://pointclouds.org/documentation/tutorials/planar_segmentation.php#ransac) can be used to remove the ground plane points.
+- Furthermore, the point cloud contained a significant amount of noise points (as can be seen in the image below) that are situated far outside the standard point cloud data.
 
 [![Point Cloud][1]][1]
 
@@ -82,7 +83,7 @@ Furthermore, the point cloud contains a significant amount of noise points (as c
 
 As it is evident from the image above, a lot of points exist in isolation. These points can be considered outliers and can be removed using outlier filtering algorithms like [Statistical Outlier Removal](http://pointclouds.org/documentation/tutorials/statistical_outlier.php) or [Radius Outlier Removal](http://pointclouds.org/documentation/tutorials/radius_outlier.php).
 
-In addition to the noise mentioned above, there are some points that are very close to the origin of the point cloud.
+- In addition to the noise mentioned above, there are some points that are very close to the origin of the point cloud.
 
 [![Point Cloud][2]][2]
 
@@ -106,7 +107,7 @@ statistical_outlier_removal:
   std_ratio: 3.4  # small: would remove too much, large: would fail to capture outliers
 ```
 
-Tuning the statistical outlier removal parameters was a bit tricky as choosing a smaller value for `nb_neighbors` would result in too many points being removed, while choosing a larger value would result in too many noise points being retained.
+Tuning the statistical outlier removal parameters was a bit tricky as choosing a smaller value for `nb_neighbors` resulted in too many points being removed, while choosing a larger value resulted in too many noise points being retained.
 Therefore, radius outlier filtering was used on top of statistical outlier filter to remove the noise points with following parameters:
 
 ```yaml
@@ -147,12 +148,11 @@ RANSAC works by randomly selecting a subset of points and fitting a model to the
 
 We can apply RANSAC algorithm on every time step of the point cloud to find the best model for the ground plane. However, this would be computationally expensive.
 
-To reduce the computational cost, we can use the best model from the previous time step to filter out the points that are close to the ground plane. We can keep using the same model for a number of time steps, updating the model periodically to account for any changes in the ground plane.
+- To reduce the computational cost, we can use the best model from the previous time step to filter out the points that are close to the ground plane.
+- We can keep using the predicted plane model for N-number of time steps, updating the model periodically to account for any changes in the ground plane.
 
 This approach has been implemented in the filtering algorithm.
-
-The RANSAC algorithm would yield the best results if the ground plan is relatively flat.
-In the provided point cloud, RANSAC was able to remove the ground plane points with a high degree of accuracy, hence, further filtering was not required.
+In the provided point cloud, RANSAC was able to remove the ground plane points with a high degree of accuracy, hence, further ground plane filtering was not done.
 
 The parameters used for the RANSAC algorithm:
 
@@ -170,19 +170,19 @@ The point cloud after applying the RANSAC algorithm looks like this ***(the remo
 [5]: assets/0002_pcd_ground_filtering_ransac_on_full_pcd.png
 
 The results shown in the image above fed the entire point cloud to RANSAC for estimating the ground plane. However, this approach is computationally expensive.
-
-Therefore, a few experiments were conducted to determine the best initial seed that can be fed to the RANSAC algorithm to reduce the computational cost.
+Therefore, a few experiments were conducted to determine the best initial seed that can be fed to the RANSAC algorithm to reduce the computational cost. Details of these experiments are discussed below.
 
 ### Random Seed
 
-In this experiment, a random subset of *100 points* was used as the initial seed for the RANSAC algorithm.
+In this experiment, a random subset of *200 points* was used as the initial seed for the RANSAC algorithm.
 
 ### Surface Normals Seed
 
-In this experiment, the surface normals of the point cloud were used to generate the initial seed for the RANSAC algorithm.
+In this experiment, the surface normals of the points were used to generate the initial seed for the RANSAC algorithm.
 
 Surface normals are the vectors that are perpendicular to the surface of an object. They can be used to determine the orientation of the object.
 As it was determined in the initial analysis that the ground plane is relatively flat, the surface normals of the plane points close to the z-axis can be used as the initial seed for the RANSAC algorithm.
+
 Hence, the points having the surface normals within a certain threshold from the z-axis can be used as the initial seed for the RANSAC algorithm.
 
 Parameters used for the surface normals seed:
@@ -249,7 +249,7 @@ The results of the experiments are shown in the following images ***(the removed
 
 The proposed pipeline was also tested on the KITTI dataset out of curiosity to see how it performs on a different point cloud distribution.
 
-The images below show the results on raw KITTI dataset sequence `kitti_2011_09_26_drive_0002_synced` ***(the estimated ground plane is shown in green)***:
+The images below show the results on raw KITTI dataset sequence `kitti_2011_09_26_drive_0002_synced` ***(the estimated ground plane points are shown in green)***:
 
 [![Point Cloud][11]][11]
 
@@ -267,9 +267,9 @@ The images below show the results on raw KITTI dataset sequence `kitti_2011_09_2
 
 ## Issues & Limitations
 
-**Processing Time**: The proposed pipeline is computationally expensive.The processing time for Statistical Outlier Removal and Radius Outlier Removal algorithms is significant (~0.5 and ~0.8 seconds per time stamp respectively). The would hinder real-time applications of the ground plane removal pipeline. A possible solution is implementing voxel grid downsampling to reduce the point cloud size and processing time without a significant loss of accuracy. However, this has not been implemented in the project so far.
+**Processing Time**: The proposed pipeline is computationally expensive.The processing time for Statistical Outlier Removal and Radius Outlier Removal algorithms is significant (~0.5 and ~0.8 seconds per time step respectively). This would hinder real-time applications of the ground plane removal pipeline. A possible solution is implementing voxel grid downsampling to reduce the point cloud size and processing time without a significant loss of accuracy. However, this has not been implemented in the project so far.
 
-**Dataset Dependency**: The pipeline's performance seems to be sensitive to the specific dataset used. While the pipeline performed well on the initial dataset, the results were less satisfactory when tested on the KITTI dataset. This highlights the need for further exploration and fine-tuning to ensure robustness across various datasets and point cloud characteristics.
+**Dataset Dependency**: The pipeline's performance seems to be sensitive to the specific dataset used. While the pipeline performed reasonably well on the initial dataset, the results were less satisfactory when tested on the KITTI dataset. This highlights the need for further exploration and fine-tuning to ensure robustness across various datasets and point cloud characteristics.
 
 **Empirical Parameter Selection**: A lot of parameters, such as the choice of using a predicted ground plane model for the next three time steps, were selected empirically. This may not be the optimal solution for all scenarios or datasets, which could lead to suboptimal results. A more systematic approach to parameter tuning and selection may be necessary for broader applicability.
 
