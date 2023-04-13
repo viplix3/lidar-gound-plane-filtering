@@ -7,6 +7,23 @@ The primary objective is to implement a point cloud filtering algorithm using [P
 
 [0]: assets/results.gif
 
+## Table of Contents
+
+- [LiDAR Ground Plane & Noise Filtering](#lidar-ground-plane--noise-filtering)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Methodology](#methodology)
+    - [Choice of Language](#choice-of-language)
+    - [Selected Library of Point Cloud Processing](#selected-library-of-point-cloud-processing)
+  - [Implementation Details](#implementation-details)
+    - [Point-Cloud Analysis](#point-cloud-analysis)
+    - [Outlier Filtering](#outlier-filtering)
+    - [Noise Removal](#noise-removal)
+    - [Ground Plane Removal](#ground-plane-removal)
+  - [Experiment & Results](#experiments--results)
+  - [Issues & Limitations](#issues--limitations)
+  - [Conclusions](#conclusion)
+
 ## Installation
 
 A [Dockerfile](Dockerfile) is provided for streamlined installation of the required dependencies.
@@ -42,7 +59,7 @@ While [C++](https://isocpp.org/) offers more efficiency and extensive support fo
 
 ### Selected Library of Point Cloud Processing
 
-Initially, [PCL](http://pointclouds.org/) was considered the prime candidate for the point cloud processing library because of its extensive support for LiDAR sensors and ease of integration with ROS. However, it was not used in the development of this project due to its lack of support for Python.
+Initially, [PCL](http://pointclouds.org/) was considered as the prime candidate for the point cloud processing library because of its extensive support for LiDAR sensors and ease of integration with ROS. However, it was not used in the development of this project due to its lack of support for Python.
 
 [PCL-Python](https://github.com/strawlab/python-pcl) provides Python bindings for PCL, but it is not actively maintained. Consequently, [Open3D](http://www.open3d.org/) was chosen as the library for point cloud processing in this project.
 
@@ -71,9 +88,9 @@ In addition to the noise mentioned above, there are some points that are very cl
 
 [2]: assets/raw_pcd_rviz_mount_noise.png
 
-These points likely exist because of how the LiDAR sensor has been mounted on the host and do not provide any useful information. Therefore, these points can be removed using a distance threshold without any major loss of information.
+These points most likely exist because of how the LiDAR sensor has been mounted on the host and do not provide any useful information. Therefore, these points can be removed using a distance threshold without any major loss of information.
 
-***The filtering algorithm was developed on the basis of the above analysis.***
+***The noise filtering algorithm was developed on the basis of the above analysis.***
 
 ### Outlier Filtering
 
@@ -89,7 +106,8 @@ statistical_outlier_removal:
   std_ratio: 3.4  # small: would remove too much, large: would fail to capture outliers
 ```
 
-Using statistical outlier filtering alone didn't remove all the noise points. Therefore, radius outlier filtering was also used to remove the remaining noise points with following parameters:
+Tuning the statistical outlier removal parameters was a bit tricky as choosing a smaller value for `nb_neighbors` would result in too many points being removed, while choosing a larger value would result in too many noise points being retained.
+Therefore, radius outlier filtering was used on top of statistical outlier filter to remove the noise points with following parameters:
 
 ```yaml
   radius_outlier_removal:
@@ -129,7 +147,8 @@ RANSAC works by randomly selecting a subset of points and fitting a model to the
 
 We can apply RANSAC algorithm on every time step of the point cloud to find the best model for the ground plane. However, this would be computationally expensive.
 
-To reduce the computational cost, we can use the best model from the previous time step to filter out the points that are close to the ground plane. We can keep using the same model for a number of time steps and then re-estimate the model using RANSAC.
+To reduce the computational cost, we can use the best model from the previous time step to filter out the points that are close to the ground plane. We can keep using the same model for a number of time steps, updating the model periodically to account for any changes in the ground plane.
+
 This approach has been implemented in the filtering algorithm.
 
 The RANSAC algorithm would yield the best results if the ground plan is relatively flat.
@@ -163,7 +182,7 @@ In this experiment, a random subset of *100 points* was used as the initial seed
 In this experiment, the surface normals of the point cloud were used to generate the initial seed for the RANSAC algorithm.
 
 Surface normals are the vectors that are perpendicular to the surface of an object. They can be used to determine the orientation of the object.
-As we figured out in the initial analysis, the ground plane is relatively flat. Therefore, the surface normals of the ground plane points should be close to the z-axis.
+As it was determined in the initial analysis that the ground plane is relatively flat, the surface normals of the plane points close to the z-axis can be used as the initial seed for the RANSAC algorithm.
 Hence, the points having the surface normals within a certain threshold from the z-axis can be used as the initial seed for the RANSAC algorithm.
 
 Parameters used for the surface normals seed:
@@ -193,7 +212,7 @@ horizontal_sampling_params:
   max_angle: 0.523599
 ```
 
-### Experiment Results
+## Experiments & Results
 
 To find a balance between the computational cost and the accuracy of the ground plane removal, the results of the above experiments were compared.
 Visual inspection of the results showed random seed and surface normals perform similarly. However, the horizontal angle seed performed poorly.
@@ -225,3 +244,43 @@ The results of the experiments are shown in the following images ***(the removed
 
 - As the results show both the random seed and surface normals seed perform similarly, the ***random seed was used for the final implementation*** as it is computationally less expensive.
 - Moreover, ***a predicted ground plane model was used for the next 3 time steps to reduce the computational cost*** (empirically determined).
+
+### Testing on KITTI Dataset
+
+The proposed pipeline was also tested on the KITTI dataset out of curiosity to see how it performs on a different point cloud distribution.
+
+The images below show the results on raw KITTI dataset sequence `kitti_2011_09_26_drive_0002_synced` ***(the estimated ground plane is shown in green)***:
+
+[![Point Cloud][11]][11]
+
+[11]: assets/results_kitti/ground_plane_estimation_random_sampling_ransac.png
+
+[![Point Cloud][12]][12]
+
+[12]: assets/results_kitti/ground_plane_estimation_surface_normals_sampling_ransac.png
+
+[![Point Cloud][13]][13]
+
+[13]: assets/results_kitti/ground_plane_estimation_horizontal_angle_sampling_ransac.png
+
+***Surprisingly, the surface normals seed performed the worst on KITTI dataset. More exploration is needed to identify any issues that may have caused this unexpected result. Possible reasons for the poor performance of the surface normals seed could be related to differences in point cloud characteristics between the datasets, such as point density or the ground plane characteristics.***
+
+## Issues & Limitations
+
+**Processing Time**: The proposed pipeline is computationally expensive.The processing time for Statistical Outlier Removal and Radius Outlier Removal algorithms is significant (~0.5 and ~0.8 seconds per time stamp respectively). The would hinder real-time applications of the ground plane removal pipeline. A possible solution is implementing voxel grid downsampling to reduce the point cloud size and processing time without a significant loss of accuracy. However, this has not been implemented in the project so far.
+
+**Dataset Dependency**: The pipeline's performance seems to be sensitive to the specific dataset used. While the pipeline performed well on the initial dataset, the results were less satisfactory when tested on the KITTI dataset. This highlights the need for further exploration and fine-tuning to ensure robustness across various datasets and point cloud characteristics.
+
+**Empirical Parameter Selection**: A lot of parameters, such as the choice of using a predicted ground plane model for the next three time steps, were selected empirically. This may not be the optimal solution for all scenarios or datasets, which could lead to suboptimal results. A more systematic approach to parameter tuning and selection may be necessary for broader applicability.
+
+**Initial Seed Selection**: The experiments indicated that different seed selection methods resulted in varying performance. While the random seed was chosen for the final implementation due to its computational efficiency, other seeding strategies, like surface normals or horizontal angles, may yield better results in certain cases. Further research could be conducted to identify more robust and adaptive seed selection methods.
+
+**Point Cloud Quality**: The pipeline's performance could be influenced by the quality of the input point cloud data, such as the presence of noise or varying point densities. The pipeline may need additional pre-processing steps or improvements to handle such variations in input data effectively.
+
+## Conclusion
+
+In conclusion, this report presents a comprehensive ground plane removal pipeline that has been successfully tested on a point cloud dataset obtained from a mobile robot. The pipeline employs statistical outlier removal (SOR) and radius outlier removal (ROR) to clean the point cloud data, and a RANSAC-based method for detecting and removing the ground plane.
+
+The pipeline's performance was evaluated using different seed selection methods for the RANSAC algorithm, including random seed, surface normals seed, and horizontal angle seed. The random seed was selected for the final implementation due to its computational efficiency, and a predicted ground plane model was used for the next three time steps to further reduce processing time.
+
+However, there are several limitations and issues identified with the pipeline. These include the processing time, dataset dependency, empirical parameter selection, initial seed selection, the trade-off between accuracy and computational cost, and point cloud quality. Further research and optimization efforts are needed to address these limitations and enhance the pipeline's performance across various datasets and scenarios.
