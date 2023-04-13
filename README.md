@@ -249,6 +249,10 @@ The results of the experiments are shown in the following images ***(the removed
 
 The proposed pipeline was also tested on the KITTI dataset out of curiosity to see how it performs on a different point cloud distribution.
 
+```yaml
+Note: The frames shown are not the exact same for random seed, sufface normals seed and horizontal angle seed as it was difficult to sync and find the exact same frames for all the seeds. However, the results shown are representative of the overall performance of the seeds.
+```
+
 The images below show the results on raw KITTI dataset sequence `kitti_2011_09_26_drive_0002_synced` ***(the estimated ground plane points are shown in green)***:
 
 [![Point Cloud][11]][11]
