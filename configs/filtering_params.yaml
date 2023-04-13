@@ -14,7 +14,7 @@ ground_plane_filtering_params:
   min_points_to_fit: 3
   distance_threshold: 0.1
   num_iterations: 1000
-  ransac_frequency: 3
+  ransac_frequency: 2
   seed_sampling_method: "random" # random, surface_normals, horizontal_angle
   surface_normal_sampling_params:
     radius: 0.1

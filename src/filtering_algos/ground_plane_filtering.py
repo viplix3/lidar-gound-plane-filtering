@@ -118,7 +118,6 @@ class GroundPlaneFilter:
         self.frame_counter += 1
         if logger.isEnabledFor(logging.DEBUG):
             self.visualize(ground_plane_pcd, non_ground_plane_pcd)
-        self.visualize(ground_plane_pcd, non_ground_plane_pcd)
 
         return ground_plane_pcd, non_ground_plane_pcd
 
