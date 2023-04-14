@@ -1,5 +1,5 @@
+import time
 import logging
-import numpy as np
 import open3d as o3d
 import sensor_msgs.point_cloud2 as pc2
 
@@ -44,17 +44,23 @@ def apply_outlier_filters(pcd: PointCloud2, filtering_params: Dict) -> PointClou
     pcd_o3d = convert_pc2_to_o3d_xyz(pcd)
 
     # Apply statistical outlier filter, takes 0.5s for 1 frame on average
+    tick = time.time()
     statistical_params = filtering_params["statistical_outlier_removal"]
     _, inlier_indices_sor = pcd_o3d.remove_statistical_outlier(
         nb_neighbors=statistical_params["nb_neighbors"],
         std_ratio=statistical_params["std_ratio"],
     )
+    tock = time.time()
+    # print("SOR time: {}".format(tock - tick))
 
     # Apply radius outlier filter, takes 0.8s for 1 frame on average
+    tick = time.time()
     radius_params = filtering_params["radius_outlier_removal"]
     _, inlier_indices_ror = pcd_o3d.remove_radius_outlier(
         nb_points=radius_params["min_neighbors"], radius=radius_params["radius"]
     )
+    tock = time.time()
+    # print("ROR time: {}".format(tock - tick))
 
     # Preserve the other fields for the filtered points
     inlier_indices = set(inlier_indices_sor + inlier_indices_ror)

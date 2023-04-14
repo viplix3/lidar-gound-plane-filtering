@@ -139,6 +139,7 @@ def filter_point_cloud(dependencies: Dict, publish_stats: bool = False):
         while not rospy.is_shutdown():
             pcd = dependencies["subscriber"].get_message()
             if pcd:
+                logger.debug("Received point cloud message, processing...")
                 msg_fields = [field.name for field in pcd.fields]
                 pcd_numpy = ros_numpy.point_cloud2.pointcloud2_to_array(pcd)
 
@@ -163,23 +164,25 @@ def filter_point_cloud(dependencies: Dict, publish_stats: bool = False):
                     pcd, filtering_params["pre_processing_params"]
                 )
                 tock = time.time()
-                logger.debug("Pre-processing time: {}".format(tock - tick))
+                logger.info("Pre-processing time: {}".format(tock - tick))
 
                 tick = time.time()
                 pcd_noise, filtered_pcd = noise_filter(
                     pre_processed_pcd, filtering_params["noise_filtering_params"]
                 )
                 tock = time.time()
-                logger.debug("Noise filtering time: {}".format(tock - tick))
+                logger.info("Noise filtering time: {}".format(tock - tick))
 
                 tick = time.time()
                 ground_plane_pcd, filtered_pcd = ground_filter.filter(filtered_pcd)
                 tock = time.time()
-                logger.debug("Ground plane filtering time: {}".format(tock - tick))
+                logger.info("Ground plane filtering time: {}".format(tock - tick))
 
                 dependencies["publisher"].publish(
                     filtered_pcd=filtered_pcd, ground_plane_pcd=ground_plane_pcd
                 )
+
+                logger.info("Processed point cloud")
 
     except KeyboardInterrupt:
         rospy.signal_shutdown("KeyboardInterrupt")
@@ -218,8 +221,8 @@ if __name__ == "__main__":
     # https://github.com/ros/ros_comm/issues/1384
     importlib.reload(logging)
     logging.basicConfig(
-        filename=logfile_dir / "app.log",
-        filemode="w",
+        # filename=logfile_dir / "app.log",
+        # filemode="w",
         level=args.log_level.upper()
         if isinstance(args.log_level, str)
         else args.log_level,
