@@ -35,18 +35,49 @@ docker build -t lidar-filtering .
 
 ## Usage
 
-Bash scripts are provided for initializing the Docker container with GUI support and running the filtering algorithm.
+### Setp 0: Get the rosbag file
 
-To initialize the Docker container, execute the following command from the root directory of the repository:
+The repository doesn't contain the rosbag file. First, create a folder named `data` in the root dir then copy the rosbag file into it.
+
+### Step 1: Initialize the Docker Container
+
+To initialize the Docker container and start roscore, execute the following command from the root directory of the repository:
 
 ```bash
 ./docker_init.sh
 ```
 
-To run the plane filtering algorithm, execute the following command after the Docker container has been initialized:
+This will initialize the Docker container and start roscore in the background.
+
+### Step 2: Run the Point Cloud Filtering Algorithm
+
+To run the point cloud filtering algorithm, execute the following command from the root directory of the repository:
 
 ```bash
-./run.sh
+python3 src/point_cloud_processor.py
+```
+
+- This would start the point cloud filtering algorithm
+- By default, the subscriber is listening to the topic `/tbuggy/os2/points`
+- By default, filtered point cloud would be published on the topic `/tbuggy/os2/points_filtered`
+- By default, filtered ground plane would be published on the topic `/tbuggy/os2/ground_plane`
+- These topics for subscriber and publisher can be changed in these files
+  - Subscriber: [configs/subscriber.yaml](configs/subscriber.yaml)
+  - Publisher: [configs/publisher.yaml](configs/publisher.yaml)
+
+```yaml
+NOTE: The point cloud filtering algorithm is not real-time (specifically the Statistical Outlier Removal and Radius Outlier Removal filters).
+Hence it is recommended to run rosbag play in a separate terminal with --pause flag to pause the rosbag and let filtering algorithm catch up.
+```
+
+### Running rosbag play
+
+As mentioned above, it is recommended to run rosbag play in a separate terminal with --pause flag to pause the rosbag and let filtering algorithm catch up.
+To do this, execute the following command from the root directory of the repository:
+
+```bash
+docker exec -it lidar-filtering bash
+rosbag play --pause data/assignment.bag
 ```
 
 ## Methodology
