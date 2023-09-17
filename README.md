@@ -2,6 +2,7 @@
 
 This project aims to remove ground plane and noise points from a LiDAR point cloud.
 The primary objective is to implement a point cloud filtering algorithm using [Python](https://www.python.org/) that can be integrated into the [ROS](https://www.ros.org/) framework.
+This implements a very naive ground-filtering algorithm.
 
 [![Results][0]][0]
 
